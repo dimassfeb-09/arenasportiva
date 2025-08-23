@@ -57,7 +57,7 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="offcanvas" data-bs-target="#authOffcanvas">User Login</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/booking/admin/login.php"><i class="fas fa-user-shield me-2"></i>Login as Admin</a></li>
+                                <li><a class="dropdown-item" href="/admin/login.php"><i class="fas fa-user-shield me-2"></i>Login as Admin</a></li>
                             </ul>
                         </li>
                     <?php endif; ?>
