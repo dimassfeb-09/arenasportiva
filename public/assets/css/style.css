@@ -1,0 +1,446 @@
+/* Navbar styling */
+.navbar {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  height: 70px;
+  background: rgba(26, 35, 126, 0.95) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.navbar-brand img {
+  max-height: 45px;
+  width: auto;
+}
+
+.navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.navbar-nav .nav-item.active .nav-link {
+  color: #ffffff !important;
+}
+
+/* Hero Carousel styling */
+#heroCarousel {
+  margin-top: 0; /* Menghilangkan space antara navbar dan carousel */
+}
+
+.carousel-item {
+  height: calc(100vh - 70px); /* Mengurangi tinggi carousel sesuai tinggi navbar */
+}
+
+.carousel-item img {
+  object-fit: cover;
+  height: 100%;
+  width: 100%;
+  filter: brightness(0.8); /* Sedikit menggelapkan gambar untuk kontras yang lebih baik */
+}
+/* Hero overlay text */
+.hero-caption {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 6%;
+  color: #fff;
+  text-shadow: 0 4px 30px rgba(0,0,0,.7);
+  pointer-events: none;
+}
+.hero-caption h1 { font-size: clamp(32px, 5vw, 72px); font-weight: 800; margin: 0; }
+.hero-caption p  { font-size: clamp(16px, 1.5vw, 22px); opacity: .9; margin-bottom: .5rem; }
+
+/* About Section Image Alignment */
+.about-section {
+  background: #ffffff;
+  padding: 80px 0;
+}
+
+.about-badge {
+  background: #dc3545;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.about-title {
+  color: #1a237e;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.about-title:after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 4px;
+  background: #dc3545;
+  margin-top: 15px;
+}
+
+.about-section p {
+  color: #37474f;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+}
+
+.about-section strong {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.about-image-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  margin-bottom: 20px;
+}
+
+.about-image-wrap img {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.about-image-wrap:hover img {
+  transform: scale(1.05);
+}
+
+.about-thumb {
+  width: 100% !important;
+  height: 200px !important;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.about-thumb:hover {
+  transform: scale(1.02);
+}
+
+.about-badge {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.about-title {
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 44px);
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.about-section p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #6c757d;
+  margin-bottom: 16px;
+}
+
+.about-section .btn-primary {
+  padding: 12px 24px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.about-section .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+  .about-image-wrap img {
+    height: 350px;
+  }
+  
+  .about-thumb {
+    height: 180px !important;
+  }
+  
+  .ps-lg-4 {
+    padding-left: 0 !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .about-image-wrap img {
+    height: 300px;
+  }
+  
+  .about-thumb {
+    height: 160px !important;
+  }
+  
+  .about-title {
+    font-size: 32px;
+  }
+}
+
+/* About Arena Sportiva Section */
+.about-arena-section {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+}
+
+.about-arena-section h4 {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.about-arena-section h5 {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.about-arena-section p {
+  color: #cfd3d6;
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+.about-arena-section .social-link {
+  transition: all 0.3s ease;
+  border: 1px solid #cfd3d6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cfd3d6;
+}
+
+.about-arena-section .social-link:hover {
+  background-color: #cfd3d6;
+  color: #0d1117;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(207, 211, 214, 0.3);
+}
+
+.about-arena-section .nav-link {
+  transition: all 0.3s ease;
+  padding: 8px 0;
+  border-radius: 6px;
+}
+
+.about-arena-section .nav-link:hover {
+  background-color: rgba(207, 211, 214, 0.1);
+  color: #ffffff !important;
+  transform: translateX(5px);
+}
+
+.about-arena-section .address-info {
+  background: rgba(207, 211, 214, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(207, 211, 214, 0.1);
+}
+
+.about-arena-section .address-info p {
+  margin-bottom: 8px;
+}
+
+.about-arena-section .address-info .address-title {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+/* Global spacing for fixed-top navbar */
+body {
+  padding-top: 70px;
+  background: #0d1117;
+}
+
+/* Booking Section */
+.booking-section {
+  position: relative;
+  background: #fff;
+}
+.booking-section .overlay { display: none; }
+.booking-section .container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Booking page chips */
+.booking-card .form-check-inline { margin-right: .5rem; margin-bottom: .5rem; }
+.slot-input { position: absolute; opacity: 0; width: 0; height: 0; }
+.slot-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 999px;
+  font-size: 14px;
+  background: #ffffff;
+  color: #212529;
+  user-select: none;
+}
+.slot-input:checked + .slot-badge {
+  background: #b40000;
+  border-color: #b40000;
+  color: #ffffff;
+}
+.slot-input:disabled + .slot-badge {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+  color: #adb5bd;
+  text-decoration: line-through;
+}
+
+/* Court cards */
+.court-card {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+.court-card .card-text { color: #495057 !important; }
+.court-card .card-img-top {
+  height: 220px;
+  object-fit: cover;
+}
+.court-card .card-body {
+  padding: 1rem;
+}
+
+/* Flix-like header styles */
+.flix-nav {
+  background: #0f1315 !important; /* very dark */
+  background-color: #0f1315 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+  z-index: 1080;
+  min-height: 72px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.flix-nav .navbar-brand img { height: 40px; }
+.flix-link {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  color: #cfd3d6 !important;
+  margin-right: 20px;
+  padding-top: 18px; padding-bottom: 18px;
+  font-size: 15px;
+}
+.flix-link:hover { color: #ffffff !important; }
+.flix-link.active { color: #ffffff !important; border-bottom: 2px solid #ff6b6b; }
+.flix-btn-auth {
+  font-weight: 600;
+  text-transform: none;
+  border: none;
+  color: #cfd3d6;
+  background: transparent;
+  padding: 6px 0;
+}
+.flix-btn-auth:hover { color: #ffffff; }
+.flix-btn-auth::after { content: " \25BE"; font-size: .85em; margin-left: .25rem; }
+.flix-balance { color: #f8f9fa !important; opacity: .95; }
+
+/* Toggler contrast */
+.flix-nav .navbar-toggler { border-color: rgba(255,255,255,0.7); }
+.flix-nav .navbar-toggler-icon { filter: invert(100%); }
+
+/* Accent: primary buttons merah senada navbar */
+.btn-primary {
+  background-color: #b40000;
+  border-color: #b40000;
+}
+.btn-primary:hover {
+  background-color: #8f0000;
+  border-color: #8f0000;
+}
+
+/* Footer bar match header style */
+footer.bg-dark {
+  background: #0f1315 !important;
+  background-color: #0f1315 !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+  color: #cfd3d6 !important;
+}
+
+/* remove Flix-like section styles */
+/* Payment card spacing */
+.payment-card {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+}
+
+/* Success page */
+.success-card {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.success-icon {
+  width: 72px;
+  height: 72px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+/* Table card (history) */
+.table-card {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.table-card thead th {
+  background: #f8f9fa;
+  border-bottom-color: #e9ecef;
+}
+
+/* Statistic Cards */
+.stat-card {
+  padding: 1rem 1.2rem;
+  min-height: 120px;
+  max-height: 170px;
+}
+.stat-card .stat-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+}
+.stat-card .stat-number {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.stat-card .stat-label {
+  font-size: 1rem;
+}

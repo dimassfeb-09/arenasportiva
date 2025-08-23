@@ -1,0 +1,30 @@
+# Protect Directory
+Options -Indexes
+
+# Protect config files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect sensitive files
+<FilesMatch "(^#.*#|\.(bak|config|sql|fla|psd|ini|log|sh|inc|swp|dist)|~)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Redirect errors to custom pages
+ErrorDocument 404 /404.php
+ErrorDocument 403 /403.php
+
+# Enable Rewrite Engine
+RewriteEngine On
+RewriteBase /
+
+# Force HTTPS (uncomment di hosting)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Protect config directory
+RewriteRule ^config/ - [F]
+RewriteRule ^src/ - [F]
