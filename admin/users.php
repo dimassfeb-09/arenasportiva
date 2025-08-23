@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     $password = $_POST['add_password'];
     if ($name && $email && $phone && strlen($password) >= 6) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $mysqli->prepare("INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, 'user')");
+        $stmt = $mysqli->prepare("INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, 'user')");
         $stmt->bind_param("ssss", $name, $email, $phone, $hashed_password);
         if ($stmt->execute()) {
             $message = 'User baru berhasil ditambahkan!';

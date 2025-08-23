@@ -30,7 +30,7 @@ function registerUser($name, $phone, $email, $password) {
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
     
     // Insert new user
-    $stmt = $mysqli->prepare("INSERT INTO users (name, phone, email, password_hash, username, role) VALUES (?, ?, ?, ?, ?, 'user')");
+    $stmt = $mysqli->prepare("INSERT INTO users (name, phone, email, password, username, role) VALUES (?, ?, ?, ?, ?, 'user')");
     $username = strtolower(str_replace(' ', '', $name)) . rand(100, 999); // Generate username from name
     $stmt->bind_param("sssss", $name, $phone, $email, $hashed_password, $username);
     
@@ -47,7 +47,7 @@ function loginUser($phone, $password) {
     global $mysqli;
     
     // Check if user exists
-    $stmt = $mysqli->prepare("SELECT id, name, phone, email, password_hash, username, role FROM users WHERE phone = ?");
+    $stmt = $mysqli->prepare("SELECT id, name, phone, email, password, username, role FROM users WHERE phone = ?");
     $stmt->bind_param("s", $phone);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -82,7 +82,7 @@ function loginAdmin($username, $password) {
     global $mysqli;
     
     // Check if admin exists
-    $stmt = $mysqli->prepare("SELECT id, name, phone, email, password_hash, username, role FROM users WHERE username = ? AND role = 'admin'");
+    $stmt = $mysqli->prepare("SELECT id, name, phone, email, password, username, role FROM users WHERE username = ? AND role = 'admin'");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
