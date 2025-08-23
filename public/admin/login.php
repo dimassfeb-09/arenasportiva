@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../../src/db_connect.php';
+require_once __DIR__ . '/../../src/auth.php';
 
 
 // Redirect if already logged in as admin
