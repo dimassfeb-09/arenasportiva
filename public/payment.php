@@ -148,7 +148,8 @@ include __DIR__ . '/../templates/header.php';
 <script>
   <?php if ($status === 'pending'): ?>
 (function(){
-var expireAt = <?= strtotime($created_at . ' +30 minutes') ?> * 1000;
+  // pakai kolom expired_at dari database
+  var expireAt = <?= strtotime($expired_at) ?> * 1000;
   var countdownEl = document.getElementById("countdown");
 
   function updateCountdown(){
