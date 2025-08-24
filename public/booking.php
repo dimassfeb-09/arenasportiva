@@ -8,11 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once __DIR__ . '/../src/db_connect.php';
 require_once __DIR__ . '/../src/booking.php';
 
-// include header.php dipindahkan ke bawah setelah semua header() dan exit
-
-// Jika court_id tidak dikirim, ambil court pertama sebagai default agar langsung tampil slot
-// Jika court_id tidak dikirim, ambil jenis dari parameter dan tampilkan lapangan sesuai jenis
-$jenis = isset($_GET['jenis']) ? $_GET['jenis'] : '';
+$jenis = $_GET['jenis'] ?? '';
 if (!isset($_GET['court_id'])) {
   if ($jenis) {
     $stmt = $mysqli->prepare("SELECT id FROM courts WHERE type = ? AND status = 'available' ORDER BY id LIMIT 1");
@@ -20,41 +16,29 @@ if (!isset($_GET['court_id'])) {
     $stmt->execute();
     $stmt->bind_result($firstId);
     if ($stmt->fetch()) {
-  header('Location: booking.php?jenis=' . $jenis . '&court_id=' . $firstId);
-  exit;
+      header('Location: booking.php?jenis=' . $jenis . '&court_id=' . $firstId);
+      exit;
     }
     $stmt->close();
   }
 }
 
-// detail court & existing bookings
-
 $court_id = isset($_GET['court_id']) ? (int)$_GET['court_id'] : 0;
-if ($court_id) {
-  $bookings = getCourtBookings($mysqli, $court_id);
-} else {
-  $bookings = [];
-}
+$bookings = $court_id ? getCourtBookings($mysqli, $court_id) : [];
 
-// daftar semua lapangan untuk selector (batasi 3 pertama untuk tampilan sederhana)
-
-$allCourts = [];
+// daftar lapangan
 if ($jenis) {
   $stmt = $mysqli->prepare("SELECT id, name, type, price_per_hour FROM courts WHERE status = 'available' AND type = ? ORDER BY id");
   $stmt->bind_param('s', $jenis);
-  $stmt->execute();
-  $res = $stmt->get_result();
-  $allCourts = $res->fetch_all(MYSQLI_ASSOC);
-  $stmt->close();
 } else {
   $stmt = $mysqli->prepare("SELECT id, name, type, price_per_hour FROM courts WHERE status = 'available' ORDER BY type, id");
-  $stmt->execute();
-  $res = $stmt->get_result();
-  $allCourts = $res->fetch_all(MYSQLI_ASSOC);
-  $stmt->close();
 }
+$stmt->execute();
+$res = $stmt->get_result();
+$allCourts = $res->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
-// hitung blocked slots
+// hitung blocked slots sekali saja
 $blocked = [];
 foreach ($bookings as $b) {
   $dt = new DateTime($b['start_datetime']);
@@ -64,8 +48,9 @@ foreach ($bookings as $b) {
   }
 }
 
-// Setelah semua header() dan exit, baru include header.php
 include __DIR__ . '/../templates/header.php';
+?>
+
 $blocked = [];
 foreach ($bookings as $b) {
     $dt = new DateTime($b['start_datetime']);
