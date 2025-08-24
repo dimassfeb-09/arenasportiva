@@ -2,7 +2,7 @@
 session_start();
 // Proteksi: hanya admin yang boleh akses
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: login.php');
+    header('Location: /booking/admin/login.php');
     exit;
 }
 

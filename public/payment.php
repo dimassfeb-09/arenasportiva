@@ -35,10 +35,37 @@ if ($res = $mysqli->query("SELECT id FROM courts ORDER BY id LIMIT 3")) {
 include __DIR__ . '/../templates/header.php';
 ?>
 
+<?php
+$stmt = $mysqli->prepare("SELECT created_at, status FROM bookings WHERE id = ?");
+$stmt->bind_param('i', $booking_id);
+$stmt->execute();
+$stmt->bind_result($created_at, $booking_status);
+$stmt->fetch();
+$stmt->close();
+
+// Jika sudah lewat 30 menit dan status masih pending, batalkan booking
+$now = new DateTime();
+$created = new DateTime($created_at);
+$diff = $now->getTimestamp() - $created->getTimestamp();
+if ($booking_status === 'pending' && $diff > 1800) {
+  $stmt = $mysqli->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
+  $stmt->bind_param('i', $booking_id);
+  $stmt->execute();
+  $stmt->close();
+  echo '<div class="container py-4"><div class="alert alert-danger">Booking telah dibatalkan karena melewati batas waktu pembayaran 30 menit.</div></div>';
+  include __DIR__ . '/../templates/footer.php';
+  exit;
+}
+?>
 <div class="container py-4">
   <div class="card shadow-sm payment-card">
     <div class="card-body">
       <h2 class="mb-4">Pembayaran Booking</h2>
+      <div class="mb-3">
+        <label class="form-label">Batas Waktu Pembayaran</label>
+        <div id="timer" style="font-size:1.3em;font-weight:bold;color:#d9534f;"></div>
+        <small class="text-muted">Jika pembayaran tidak dilakukan dalam 30 menit, booking akan otomatis dibatalkan.</small>
+      </div>
 
       <table class="table table-bordered">
         <tr><th>Kode Booking</th>      <td><?= htmlspecialchars($code) ?></td></tr>
@@ -133,6 +160,26 @@ include __DIR__ . '/../templates/header.php';
 
 <script>
   (function(){
+    // Timer countdown
+    var timerDiv = document.getElementById('timer');
+    var createdAt = new Date('<?= $created_at ?>'.replace(' ', 'T'));
+    var expireAt = new Date(createdAt.getTime() + 30*60*1000);
+    function updateTimer() {
+      var now = new Date();
+      var diff = Math.floor((expireAt - now)/1000);
+      if (diff <= 0) {
+        timerDiv.textContent = 'Waktu habis! Booking dibatalkan.';
+        document.getElementById('paymentForm').style.display = 'none';
+        // Optional: reload page to trigger backend cancel
+        setTimeout(function(){ location.reload(); }, 2000);
+        return;
+      }
+      var m = Math.floor(diff/60);
+      var s = diff%60;
+      timerDiv.textContent = m + ' menit ' + (s < 10 ? '0' : '') + s + ' detik';
+    }
+    updateTimer();
+    setInterval(updateTimer, 1000);
     var sel = document.getElementById('payMethod');
     var qris = document.getElementById('info-qris');
     var transfer = document.getElementById('info-transfer');
@@ -191,8 +238,8 @@ include __DIR__ . '/../templates/header.php';
       });
     }
 
-    // Inisialisasi tampilan awal
-    calculateAmount();
+  // Inisialisasi tampilan awal
+  calculateAmount();
   })();
 </script>
 
