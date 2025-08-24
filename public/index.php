@@ -4,8 +4,8 @@ require_once __DIR__ . '/../src/db_connect.php';
 require_once __DIR__ . '/../src/auth.php';
 
 // Proses login pelanggan dari form header
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['phone'], $_POST['password'])) {
-    $username = $_POST['phone'];  // Using 'phone' name for backward compatibility, but it's actually the username
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['password'])) {
+    $username = $_POST['username'];  // Using 'username' name for backward compatibility, but it's actually the username
     $password = $_POST['password'];
     $result = loginUser($username, $password);
     if ($result['success']) {
