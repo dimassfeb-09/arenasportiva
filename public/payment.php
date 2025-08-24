@@ -41,7 +41,7 @@ include __DIR__ . '/../templates/header.php';
       <h2 class="mb-4">Pembayaran Booking</h2>
 
       <?php if ($status === 'pending'): ?>
-  <div class="mb-4 text-center">
+  <div class="mb-4 text-start">
     <h5 class="mb-2">Batas Waktu Pembayaran</h5>
     <div id="countdown" class="fw-bold" style="font-size:1.5em; color:#d9534f;">
       <!-- Countdown muncul di sini -->
