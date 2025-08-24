@@ -147,32 +147,32 @@ include __DIR__ . '/../templates/header.php';
 
 <script>
   <?php if ($status === 'pending'): ?>
-  (function(){
-    var expireAt = new Date("<?= date('Y-m-d H:i:s', strtotime($created_at . ' +30 minutes')) ?>").getTime();
-    var countdownEl = document.getElementById("countdown");
+(function(){
+  var expireAt = <?= strtotime($created_at . ' +30 minutes') ?> * 1000;
+  var countdownEl = document.getElementById("countdown");
 
-    function updateCountdown(){
-      var now = new Date().getTime();
-      var distance = expireAt - now;
+  function updateCountdown(){
+    var now = Date.now();
+    var distance = expireAt - now;
 
-      if (distance <= 0) {
-        countdownEl.textContent = "00:00";
-        alert("Waktu pembayaran habis! Booking dibatalkan.");
-        window.location.href = 'cancel_booking.php?booking_id=<?= $booking_id ?>';
-        return;
-      }
-
-      var minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
-      var seconds = Math.floor((distance % (1000*60)) / 1000);
-
-      countdownEl.textContent =
-        String(minutes).padStart(2, '0') + ":" +
-        String(seconds).padStart(2, '0');
+    if (distance <= 0) {
+      countdownEl.textContent = "00:00";
+      alert("Waktu pembayaran habis! Booking dibatalkan.");
+      window.location.href = 'cancel_booking.php?booking_id=<?= $booking_id ?>';
+      return;
     }
 
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-  })();
+    var minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+    var seconds = Math.floor((distance % (1000*60)) / 1000);
+
+    countdownEl.textContent =
+      String(minutes).padStart(2, '0') + ":" +
+      String(seconds).padStart(2, '0');
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+})();
   <?php endif; ?>
 
   (function(){
