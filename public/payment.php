@@ -169,9 +169,7 @@ include __DIR__ . '/../templates/header.php';
     var minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
     var seconds = Math.floor((distance % (1000*60)) / 1000);
 
-    countdownEl.textContent =
-      String(minutes).padStart(2, '0') + ":" +
-      String(seconds).padStart(2, '0');
+    countdownEl.textContent = minutes + " menit " + seconds + " detik";
   }
 
   updateCountdown();
