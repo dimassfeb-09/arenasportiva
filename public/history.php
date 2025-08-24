@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-	header('Location: login.php');
+	header('Location: index.php');
 	exit;
 }
 
@@ -49,7 +49,7 @@ include __DIR__ . '/../templates/header.php';
 					<th>Total</th>
 					<th>Status Booking</th>
 					<th>Status Pembayaran</th>
-					<th>Bukti</th>
+					<th>Tiket</th>
 				</tr>
 			</thead>
 			<tbody>

@@ -1,7 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../src/db_connect.php';
-
+require_once __DIR__ . '/../src/db_connect.php';
 
 // Check if user is logged in as admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -50,6 +49,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
         $message = 'Password minimal 6 karakter!';
         $message_type = 'danger';
     }
+}
+
+// Handle hapus user
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
+    $user_id = (int)$_POST['user_id'];
+    // Hapus booking dan pembayaran user terlebih dahulu agar tidak ada foreign key error
+    $stmt = $mysqli->prepare("DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE user_id = ?)");
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $stmt->close();
+    $stmt = $mysqli->prepare("DELETE FROM bookings WHERE user_id = ?");
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $stmt->close();
+    $stmt = $mysqli->prepare("DELETE FROM users WHERE id = ?");
+    $stmt->bind_param('i', $user_id);
+    if ($stmt->execute()) {
+        $message = 'User berhasil dihapus!';
+        $message_type = 'success';
+    } else {
+        $message = 'Gagal menghapus user.';
+        $message_type = 'danger';
+    }
+    $stmt->close();
 }
 
 // Handle tambah user baru
@@ -391,6 +414,10 @@ $stmt->close();
                                 <td><?= isset($user['coupon_discount']) ? 'Rp ' . number_format($user['coupon_discount'], 0, ',', '.') : '-' ?></td>
                                 <td>
                                     <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editCouponModal" onclick="setCouponModal(<?= $user['id'] ?>, <?= $user['coupon_discount'] ?>)">Edit Coupon</button>
+                                    <form method="post" style="display:inline-block" onsubmit="return confirm('Yakin ingin menghapus user ini? Semua data booking & pembayaran user juga akan dihapus!');">
+                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                        <button type="submit" name="delete_user" class="btn btn-sm btn-danger ms-1"><i class="fas fa-trash"></i> Hapus</button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
