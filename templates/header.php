@@ -202,3 +202,24 @@
 
     <!-- Main Content Wrapper -->
     <div style="padding-top: 76px;">
+
+
+    
+    
+    <?php if (!empty($_SESSION['success_message'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-success">
+                <?= htmlspecialchars($_SESSION['success_message']) ?>
+            </div>
+        </div>
+        <?php unset($_SESSION['success_message']); ?>
+    <?php endif; ?>
+
+    <?php if (!empty($_SESSION['error_message'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-danger">
+                <?= htmlspecialchars($_SESSION['error_message']) ?>
+            </div>
+        </div>
+        <?php unset($_SESSION['error_message']); ?>
+    <?php endif; ?>
