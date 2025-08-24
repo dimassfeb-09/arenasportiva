@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
 // Get all users
 $stmt = $mysqli->prepare("
-    SELECT u.id, u.name, u.phone, u.email, u.coupon_discount,
+    SELECT u.id, u.name, u.username, u.phone, u.email, u.coupon_discount,
            COUNT(b.id) as total_bookings,
            SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_bookings,
            SUM(CASE WHEN b.status = 'rejected' THEN 1 ELSE 0 END) as rejected_bookings
@@ -398,7 +398,9 @@ $stmt->close();
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>User</th>
+                                <th>UserID</th>
+                                <th>Username</th>
+                                <th>Nama</th>
                                 <th>Kontak</th>
                                 <th>Email</th>
                                 <th>Coupon/Diskon</th>
@@ -408,6 +410,8 @@ $stmt->close();
                         <tbody>
                         <?php foreach ($users as $user): ?>
                             <tr>
+                                <td><?= $user['id'] ?></td>
+                                <td><?= htmlspecialchars($user['username']) ?></td>
                                 <td><?= htmlspecialchars($user['name']) ?></td>
                                 <td><?= htmlspecialchars($user['phone']) ?></td>
                                 <td><?= htmlspecialchars($user['email']) ?></td>
