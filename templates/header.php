@@ -130,7 +130,7 @@
                     <form action="register.php" method="POST">
                         <div class="mb-3">
                             <label for="registerUsername" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="registerUsername" name="userId" placeholder="Masukkan username Anda" required>
+                            <input type="text" class="form-control" id="registerUsername" name="username" placeholder="Masukkan username Anda" required>
                         </div>
                         <div class="mb-3">
                             <label for="registerPhone" class="form-label">Nomor Telepon</label>
