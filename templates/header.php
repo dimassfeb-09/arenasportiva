@@ -110,7 +110,7 @@
                     <form action="index.php" method="POST">
                         <div class="mb-3">
                             <label for="loginUsername" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="loginUsername" name="phone" placeholder="Masukkan username Anda" required>
+                            <input type="text" class="form-control" id="loginUsername" name="username" placeholder="Masukkan username Anda" required>
                             <input type="hidden" name="identifier" value="">
                         </div>
                         <div class="mb-3">
