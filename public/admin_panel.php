@@ -2,7 +2,7 @@
 session_start();
 // proteksi: hanya admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: /booking/admin/login.php');
+    header('Location: login.php');
     exit;
 }
 

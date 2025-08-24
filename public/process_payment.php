@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -16,11 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST'
 
 require_once __DIR__ . '/../src/db_connect.php';
 
-// Ambil data
-$booking_id = (int) $_POST['booking_id'];
-$method     = $_POST['method'];           // 'qris' atau 'transfer'
-$user_id    = $_SESSION['user_id'];
-
 // Ambil coupon_discount user
 $stmt = $mysqli->prepare("SELECT coupon_discount FROM users WHERE id = ?");
 $stmt->bind_param('i', $user_id);
@@ -28,6 +23,11 @@ $stmt->execute();
 $stmt->bind_result($coupon_discount);
 $stmt->fetch();
 $stmt->close();
+
+// Ambil data
+$booking_id = (int) $_POST['booking_id'];
+$method     = $_POST['method'];           // 'qris' atau 'transfer'
+$user_id    = $_SESSION['user_id'];
 // ...hapus logika balance...
 $discount = (int)($_POST['discount'] ?? 0);
 $paid_amount = (int)($_POST['paid_amount'] ?? 0);
@@ -81,15 +81,6 @@ if (!$stmt->execute()) {
     die('Gagal menyimpan pembayaran: ' . $stmt->error);
 }
 $stmt->close();
-
-
-// Jika coupon_discount dipakai, update user jadi 0
-if ($coupon_discount > 0) {
-    $stmt = $mysqli->prepare("UPDATE users SET coupon_discount = 0 WHERE id = ?");
-    $stmt->bind_param('i', $user_id);
-    $stmt->execute();
-    $stmt->close();
-}
 
 // Bersihkan session booking_id
 unset($_SESSION['last_booking_id']);
