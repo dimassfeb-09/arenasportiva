@@ -400,7 +400,6 @@ $stmt->close();
                             <tr>
                                 <th>UserID</th>
                                 <th>Username</th>
-                                <th>Nama</th>
                                 <th>Kontak</th>
                                 <th>Email</th>
                                 <th>Coupon/Diskon</th>
@@ -412,7 +411,6 @@ $stmt->close();
                             <tr>
                                 <td><?= $user['id'] ?></td>
                                 <td><?= htmlspecialchars($user['username']) ?></td>
-                                <td><?= htmlspecialchars($user['name']) ?></td>
                                 <td><?= htmlspecialchars($user['phone']) ?></td>
                                 <td><?= htmlspecialchars($user['email']) ?></td>
                                 <td><?= isset($user['coupon_discount']) ? 'Rp ' . number_format($user['coupon_discount'], 0, ',', '.') : '-' ?></td>
