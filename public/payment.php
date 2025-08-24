@@ -79,10 +79,10 @@ include __DIR__ . '/../templates/header.php';
   </div>
 </div>
 
-<script>
 <?php if ($status === 'pending' && $expired_at): ?>
 (function(){
   var expireAt = <?= strtotime($expired_at) ?> * 1000;
+  console.log("Expire At:", expireAt, "Expired At (php): <?= $expired_at ?>");
   var countdownEl = document.getElementById("countdown");
 
   function updateCountdown(){
@@ -108,6 +108,7 @@ include __DIR__ . '/../templates/header.php';
   setInterval(updateCountdown, 1000);
 })();
 <?php endif; ?>
+
 </script>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>
