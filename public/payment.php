@@ -18,7 +18,7 @@ $stmt = $mysqli->prepare(
 );
 $stmt->bind_param('i', $booking_id);
 $stmt->execute();
-$stmt->bind_result($code, $start_dt, $duration, $created_at, $status, $court_id, $court_name, $court_type, $price);
+$stmt->bind_result($code, $start_dt, $duration, $expired_at, $status, $court_id, $court_name, $court_type, $price);
 $stmt->fetch();
 $stmt->close();
 
