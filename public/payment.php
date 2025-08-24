@@ -41,15 +41,17 @@ include __DIR__ . '/../templates/header.php';
       <h2 class="mb-4">Pembayaran Booking</h2>
 
       <?php if ($status === 'pending'): ?>
-        <div class="alert alert-warning">
-          Selesaikan pembayaran dalam waktu <strong><span id="countdown"></span></strong>.  
-          Jika melewati batas waktu, booking akan otomatis dibatalkan.
-        </div>
-      <?php elseif ($status === 'cancelled'): ?>
-        <div class="alert alert-danger">
-          Booking ini sudah <strong>dibatalkan</strong>. Silakan buat booking baru.
-        </div>
-      <?php endif; ?>
+  <div class="mb-4 text-center">
+    <h5 class="mb-2">Batas Waktu Pembayaran</h5>
+    <div id="countdown" class="fw-bold" style="font-size:1.5em; color:#d9534f;">
+      <!-- Countdown muncul di sini -->
+    </div>
+    <small class="text-muted">
+      Jika pembayaran tidak dilakukan dalam 30 menit, booking akan otomatis dibatalkan.
+    </small>
+  </div>
+<?php endif; ?>
+
 
       <table class="table table-bordered">
         <tr><th>Kode Booking</th><td><?= htmlspecialchars($code) ?></td></tr>
