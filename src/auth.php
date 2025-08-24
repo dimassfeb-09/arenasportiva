@@ -43,12 +43,14 @@ function registerUser($name, $phone, $email, $password) {
     }
 }
 
-function loginUser($phone, $password) {
+function loginUser($username, $password) {
     global $mysqli;
     
-    // Check if user exists
-    $stmt = $mysqli->prepare("SELECT id, name, phone, email, password, username, role FROM users WHERE phone = ?");
-    $stmt->bind_param("s", $phone);
+    // Check if user exists by username
+    $stmt = $mysqli->prepare("SELECT id, name, phone, email, password, username, role 
+                              FROM users 
+                              WHERE username = ? LIMIT 1");
+    $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -57,14 +59,16 @@ function loginUser($phone, $password) {
         
         if (password_verify($password, $user['password'])) {
             // Start session and store user data
-            session_start();
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['name'] = $user['name'];
-            $_SESSION['phone'] = $user['phone'];
-            $_SESSION['email'] = $user['email'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
-            // ...hapus session balance...
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            $_SESSION['user_id']   = $user['id'];
+            $_SESSION['name']      = $user['name'];
+            $_SESSION['username']  = $user['username'];
+            $_SESSION['email']     = $user['email'];
+            $_SESSION['phone']     = $user['phone'];
+            $_SESSION['role']      = $user['role'];
             
             $stmt->close();
             return ['success' => true, 'message' => 'Login berhasil!', 'role' => $user['role']];
@@ -74,9 +78,10 @@ function loginUser($phone, $password) {
         }
     } else {
         $stmt->close();
-        return ['success' => false, 'message' => 'Nomor telepon tidak ditemukan!'];
+        return ['success' => false, 'message' => 'Username tidak ditemukan!'];
     }
 }
+
 
 function loginAdmin($username, $password) {
     global $mysqli;
