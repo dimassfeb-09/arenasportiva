@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </button>
                             </div>
                             <div class="d-grid">
-                                <a href="/booking/public/" class="btn btn-outline-secondary">
+                                <a href="/" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left me-2"></i> Kembali ke Beranda
                                 </a>
                             </div>
