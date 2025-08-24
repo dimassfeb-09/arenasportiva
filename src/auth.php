@@ -45,31 +45,30 @@ function registerUser($name, $phone, $email, $password) {
 
 function loginUser($username, $password) {
     global $mysqli;
-    
-    // Check if user exists by username
+
+    // Cari user berdasarkan username
     $stmt = $mysqli->prepare("SELECT id, name, phone, email, password, username, role 
                               FROM users 
                               WHERE username = ? LIMIT 1");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
-        
+
         if (password_verify($password, $user['password'])) {
-            // Start session and store user data
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
-            
+
             $_SESSION['user_id']   = $user['id'];
             $_SESSION['name']      = $user['name'];
             $_SESSION['username']  = $user['username'];
             $_SESSION['email']     = $user['email'];
             $_SESSION['phone']     = $user['phone'];
             $_SESSION['role']      = $user['role'];
-            
+
             $stmt->close();
             return ['success' => true, 'message' => 'Login berhasil!', 'role' => $user['role']];
         } else {
@@ -81,7 +80,6 @@ function loginUser($username, $password) {
         return ['success' => false, 'message' => 'Username tidak ditemukan!'];
     }
 }
-
 
 function loginAdmin($username, $password) {
     global $mysqli;

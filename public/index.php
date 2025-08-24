@@ -5,19 +5,22 @@ require_once __DIR__ . '/../src/auth.php';
 
 // Proses login pelanggan dari form header
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['password'])) {
-    $username = $_POST['username'];  // Using 'username' name for backward compatibility, but it's actually the username
+    $username = trim($_POST['username']);  
     $password = $_POST['password'];
+
     $result = loginUser($username, $password);
+
     if ($result['success']) {
         $_SESSION['login_success'] = 'Login berhasil!';
         header('Location: index.php');
         exit();
     } else {
-        $_SESSION['login_error'] = 'id atau password salah';
+        $_SESSION['login_error'] = $result['message']; // ambil pesan asli (username tidak ditemukan / password salah)
         header('Location: index.php');
         exit();
     }
 }
+
 
 // Check for success message from registration
 $message = '';
