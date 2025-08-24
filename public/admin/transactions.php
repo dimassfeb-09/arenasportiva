@@ -399,7 +399,7 @@ $stmt->close();
                                                   data-bs-toggle="modal" 
                                                   data-bs-target="#proofModal"
                                                   data-src="../public/uploads/<?= htmlspecialchars($payment['proof_image']) ?>"
-                                                  onerror="this.onerror=null; this.src='../public/assets/img/no-image.png';">
+                                                  onerror="this.onerror=null; this.src='/assets/img/no-image.png';">
                                          <?php else: ?>
                                              <span class="text-muted">Tidak ada</span>
                                          <?php endif; ?>
