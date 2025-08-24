@@ -10,6 +10,7 @@ require_once __DIR__ . '/../src/db_connect.php';
 $booking_id = (int)$_SESSION['last_booking_id'];
 $stmt = $mysqli->prepare(
   "SELECT b.booking_code, b.start_datetime, b.duration_hours,
+          b.created_at, b.status,
           c.id AS court_id, c.name, c.type, c.price_per_hour
    FROM bookings b
    JOIN courts c ON b.court_id = c.id
@@ -17,13 +18,12 @@ $stmt = $mysqli->prepare(
 );
 $stmt->bind_param('i', $booking_id);
 $stmt->execute();
-$stmt->bind_result($code, $start_dt, $duration, $court_id, $court_name, $court_type, $price);
+$stmt->bind_result($code, $start_dt, $duration, $created_at, $status, $court_id, $court_name, $court_type, $price);
 $stmt->fetch();
 $stmt->close();
 
 $total = $price * $duration;
 
-// Tentukan urutan lapangan 1-3 berdasarkan urutan ID terendah
 $lapanganNumber = null;
 if ($res = $mysqli->query("SELECT id FROM courts ORDER BY id LIMIT 3")) {
   $ids = [];
@@ -40,25 +40,39 @@ include __DIR__ . '/../templates/header.php';
     <div class="card-body">
       <h2 class="mb-4">Pembayaran Booking</h2>
 
+      <?php if ($status === 'pending'): ?>
+        <div class="alert alert-warning">
+          Selesaikan pembayaran dalam waktu <strong><span id="countdown"></span></strong>.  
+          Jika melewati batas waktu, booking akan otomatis dibatalkan.
+        </div>
+      <?php elseif ($status === 'canceled'): ?>
+        <div class="alert alert-danger">
+          Booking ini sudah <strong>dibatalkan</strong>. Silakan buat booking baru.
+        </div>
+      <?php endif; ?>
+
       <table class="table table-bordered">
-        <tr><th>Kode Booking</th>      <td><?= htmlspecialchars($code) ?></td></tr>
-        <tr><th>Lapangan</th>         <td>
-          <?= htmlspecialchars($court_name) ?> (<?= $court_type ?>)
-          <?php if ($lapanganNumber !== null): ?>
-            — Lapangan <?= $lapanganNumber ?>
-          <?php endif; ?>
-        </td></tr>
-        <tr><th>Tanggal & Jam</th>    <td><?= $start_dt ?></td></tr>
-        <tr><th>Durasi</th>           <td><?= $duration ?> jam</td></tr>
-        <tr><th>Harga/jam</th>         <td>Rp <?= number_format($price,0,',','.') ?></td></tr>
-        <tr><th>Total Bayar</th>       <td><strong>Rp <?= number_format($total,0,',','.') ?></strong></td></tr>
+        <tr><th>Kode Booking</th><td><?= htmlspecialchars($code) ?></td></tr>
+        <tr><th>Lapangan</th>
+          <td>
+            <?= htmlspecialchars($court_name) ?> (<?= $court_type ?>)
+            <?php if ($lapanganNumber !== null): ?>
+              — Lapangan <?= $lapanganNumber ?>
+            <?php endif; ?>
+          </td>
+        </tr>
+        <tr><th>Tanggal & Jam</th><td><?= $start_dt ?></td></tr>
+        <tr><th>Durasi</th><td><?= $duration ?> jam</td></tr>
+        <tr><th>Harga/jam</th><td>Rp <?= number_format($price,0,',','.') ?></td></tr>
+        <tr><th>Total Bayar</th><td><strong>Rp <?= number_format($total,0,',','.') ?></strong></td></tr>
         <?php if (!empty($_SESSION['customer_name']) || !empty($_SESSION['customer_phone'])): ?>
-        <tr><th>Nama</th>              <td><?= htmlspecialchars($_SESSION['customer_name'] ?? '') ?></td></tr>
-        <tr><th>No. Telepon</th>       <td><?= htmlspecialchars($_SESSION['customer_phone'] ?? '') ?></td></tr>
+        <tr><th>Nama</th><td><?= htmlspecialchars($_SESSION['customer_name'] ?? '') ?></td></tr>
+        <tr><th>No. Telepon</th><td><?= htmlspecialchars($_SESSION['customer_phone'] ?? '') ?></td></tr>
         <?php endif; ?>
       </table>
 
-  <form method="post" action="process_payment.php" enctype="multipart/form-data" class="mt-4" id="paymentForm">
+      <?php if ($status === 'pending'): ?>
+      <form method="post" action="process_payment.php" enctype="multipart/form-data" class="mt-4" id="paymentForm">
         <input type="hidden" name="booking_id" value="<?= $booking_id ?>">
         <input type="hidden" name="amount" value="<?= (int)$total ?>">
 
@@ -85,7 +99,6 @@ include __DIR__ . '/../templates/header.php';
           </div>
           <div class="col-md-6">
             <?php
-            // Ambil coupon_discount user
             $user_id = $_SESSION['user_id'];
             $stmt = $mysqli->prepare("SELECT coupon_discount FROM users WHERE id = ?");
             $stmt->bind_param('i', $user_id);
@@ -127,11 +140,41 @@ include __DIR__ . '/../templates/header.php';
           </div>
         </div>
       </form>
+      <?php endif; ?>
     </div>
   </div>
 </div>
 
 <script>
+  <?php if ($status === 'pending'): ?>
+  (function(){
+    var expireAt = new Date("<?= date('Y-m-d H:i:s', strtotime($created_at . ' +30 minutes')) ?>").getTime();
+    var countdownEl = document.getElementById("countdown");
+
+    function updateCountdown(){
+      var now = new Date().getTime();
+      var distance = expireAt - now;
+
+      if (distance <= 0) {
+        countdownEl.textContent = "00:00";
+        alert("Waktu pembayaran habis! Booking dibatalkan.");
+        window.location.href = 'cancel_booking.php?booking_id=<?= $booking_id ?>';
+        return;
+      }
+
+      var minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+      var seconds = Math.floor((distance % (1000*60)) / 1000);
+
+      countdownEl.textContent =
+        String(minutes).padStart(2, '0') + ":" +
+        String(seconds).padStart(2, '0');
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  })();
+  <?php endif; ?>
+
   (function(){
     var sel = document.getElementById('payMethod');
     var qris = document.getElementById('info-qris');
@@ -150,7 +193,6 @@ include __DIR__ . '/../templates/header.php';
     var cancelCouponBtn = document.getElementById('cancelCouponBtn');
     var couponDiscount = <?= (int)$coupon_discount ?>;
     var totalAmount = <?= (int)$total ?>;
-    var couponApplied = false;
 
     function calculateAmount() {
       var discountAmount = parseInt(discount.value) || 0;
@@ -168,7 +210,6 @@ include __DIR__ . '/../templates/header.php';
         calculateAmount();
         applyCouponBtn.style.display = 'none';
         if (cancelCouponBtn) cancelCouponBtn.style.display = '';
-        couponApplied = true;
       });
     }
     if (cancelCouponBtn) {
@@ -177,11 +218,9 @@ include __DIR__ . '/../templates/header.php';
         calculateAmount();
         cancelCouponBtn.style.display = 'none';
         if (applyCouponBtn) applyCouponBtn.style.display = '';
-        couponApplied = false;
       });
     }
 
-    // Batalkan booking
     var cancelBookingBtn = document.getElementById('cancelBookingBtn');
     if (cancelBookingBtn) {
       cancelBookingBtn.addEventListener('click', function(){
@@ -191,7 +230,6 @@ include __DIR__ . '/../templates/header.php';
       });
     }
 
-    // Inisialisasi tampilan awal
     calculateAmount();
   })();
 </script>
