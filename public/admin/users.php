@@ -398,7 +398,6 @@ $stmt->close();
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>UserID</th>
                                 <th>Username</th>
                                 <th>Kontak</th>
                                 <th>Email</th>
@@ -409,7 +408,6 @@ $stmt->close();
                         <tbody>
                         <?php foreach ($users as $user): ?>
                             <tr>
-                                <td><?= $user['id'] ?></td>
                                 <td><?= htmlspecialchars($user['username']) ?></td>
                                 <td><?= htmlspecialchars($user['phone']) ?></td>
                                 <td><?= htmlspecialchars($user['email']) ?></td>

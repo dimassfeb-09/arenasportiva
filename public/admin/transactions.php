@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all payments with user and booking details
 $stmt = $mysqli->prepare("
-    SELECT p.*, u.name as user_name, u.phone as user_phone, b.start_datetime, c.name as court_name,
+    SELECT p.*, u.username as username, u.phone as user_phone, b.start_datetime, c.name as court_name,
            p.proof_image, p.proof_url, p.discount
     FROM payments p
     JOIN bookings b ON p.booking_id = b.id
@@ -364,7 +364,7 @@ $stmt->close();
                                 <tr>
                                     <td>
                                         <div>
-                                            <strong><?= htmlspecialchars($payment['user_name']) ?></strong>
+                                            <strong><?= htmlspecialchars($payment['username']) ?></strong>
                                             <br>
                                             <small class="text-muted"><?= htmlspecialchars($payment['user_phone']) ?></small>
                                         </div>
