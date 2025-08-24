@@ -51,15 +51,6 @@ foreach ($bookings as $b) {
 include __DIR__ . '/../templates/header.php';
 ?>
 
-$blocked = [];
-foreach ($bookings as $b) {
-    $dt = new DateTime($b['start_datetime']);
-    for ($i = 0; $i < $b['duration_hours']; $i++) {
-        $blocked[] = $dt->format('Y-m-d H:00');
-        $dt->modify('+1 hour');
-    }
-}
-?>
 <div class="container py-4">
   <div class="card shadow-sm">
     <div class="card-body">
