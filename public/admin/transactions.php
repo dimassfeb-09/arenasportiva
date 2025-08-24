@@ -390,20 +390,19 @@ $stmt->close();
                                          <?php else: ?>
                                              <span class="text-muted">-</span>
                                          <?php endif; ?>
-                                     </td>
-                                                                         <td>
-                                         <?php if (!empty($payment['proof_image'])): ?>
-                                             <img src="../public/uploads/<?= htmlspecialchars($payment['proof_image']) ?>" 
-                                                  alt="Bukti Pembayaran" 
-                                                  class="payment-proof"
-                                                  data-bs-toggle="modal" 
-                                                  data-bs-target="#proofModal"
-                                                  data-src="../public/uploads/<?= htmlspecialchars($payment['proof_image']) ?>"
-                                                  onerror="this.onerror=null; this.src='/assets/img/no-image.png';">
-                                         <?php else: ?>
-                                             <span class="text-muted">Tidak ada</span>
-                                         <?php endif; ?>
-                                     </td>
+                                     <td>
+                                        <?php if (!empty($payment['proof_image'])): ?>
+                                            <img src="/uploads/<?= htmlspecialchars($payment['proof_image']) ?>" 
+                                                alt="Bukti Pembayaran" 
+                                                class="payment-proof"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#proofModal"
+                                                data-src="/uploads/<?= htmlspecialchars($payment['proof_image']) ?>"
+                                                onerror="this.onerror=null; this.src='/assets/img/no-image.png';">
+                                        <?php else: ?>
+                                            <span class="text-muted">Tidak ada</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?php
                                         $status_class = '';
