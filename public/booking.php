@@ -74,21 +74,23 @@ foreach ($bookings as $b) {
       <h2 class="mb-4">Booking Lapangan</h2>
 
       <div class="mb-3">
-        <label class="form-label">Pilih Lapangan</label>
-        <select id="courtSelect" name="court_id" class="form-select w-auto d-inline-block">
-          <?php foreach ($allCourts as $c): ?>
-            <option value="<?= $c['id'] ?>" <?= $c['id'] == $court_id ? 'selected' : '' ?>><?= htmlspecialchars($c['name']) ?> (Rp <?= number_format($c['price_per_hour'], 0, ',', '.') ?>/jam)</option>
-          <?php endforeach; ?>
-        </select>
-        <script>
-          document.getElementById('courtSelect').addEventListener('change', function() {
-            var jenis = "<?= htmlspecialchars($jenis) ?>";
-            var courtId = this.value;
-            window.location.href = "booking.php?jenis=" + jenis + "&court_id=" + courtId;
-          });
-        </script>
-        </select>
-      </div>
+  <label class="form-label">Pilih Lapangan</label>
+  <select id="courtSelect" name="court_id" class="form-select w-auto d-inline-block">
+    <?php foreach ($allCourts as $c): ?>
+      <option value="<?= $c['id'] ?>" <?= $c['id'] == $court_id ? 'selected' : '' ?>>
+        <?= htmlspecialchars($c['name']) ?> (Rp <?= number_format($c['price_per_hour'], 0, ',', '.') ?>/jam)
+      </option>
+    <?php endforeach; ?>
+  </select>
+  <script>
+    document.getElementById('courtSelect').addEventListener('change', function() {
+      var jenis = "<?= htmlspecialchars($jenis) ?>";
+      var courtId = this.value;
+      window.location.href = "booking.php?jenis=" + jenis + "&court_id=" + courtId;
+    });
+  </script>
+</div>
+
 
       <form method="post" action="process_booking.php" class="mt-3 booking-card">
         <input type="hidden" name="court_id" value="<?= $court_id ?>">
