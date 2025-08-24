@@ -34,12 +34,13 @@ $customer_phone = trim($_POST['customer_phone']);
 $code = 'BK-'. date('Ymd') . '-' . strtoupper(substr(md5(uniqid()),0,6));
 
 // 5) Simpan ke tabel bookings dengan status pending
+$expired_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
 $stmt = $mysqli->prepare("
-    INSERT INTO bookings
-      (user_id, court_id, start_datetime, duration_hours, status, booking_code)
-    VALUES (?, ?, ?, ?, 'pending', ?)
+    INSERT INTO bookings (user_id, court_id, start_datetime, duration_hours, status, booking_code, expired_at)
+    VALUES (?, ?, ?, ?, 'pending', ?, ?)
 ");
-$stmt->bind_param('iisis', $user_id, $court_id, $start, $dur, $code);
+$stmt->bind_param('iisiss', $user_id, $court_id, $start, $dur, $code, $expired_at);
+
 
 if (!$stmt->execute()) {
     die('Gagal menyimpan booking: ' . $stmt->error);

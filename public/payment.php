@@ -10,11 +10,11 @@ require_once __DIR__ . '/../src/db_connect.php';
 $booking_id = (int)$_SESSION['last_booking_id'];
 $stmt = $mysqli->prepare(
   "SELECT b.booking_code, b.start_datetime, b.duration_hours,
-          b.created_at, b.status,
-          c.id AS court_id, c.name, c.type, c.price_per_hour
-   FROM bookings b
-   JOIN courts c ON b.court_id = c.id
-   WHERE b.id = ?"
+       b.expired_at, b.status,
+       c.id AS court_id, c.name, c.type, c.price_per_hour
+    FROM bookings b
+    JOIN courts c ON b.court_id = c.id
+    WHERE b.id = ?"
 );
 $stmt->bind_param('i', $booking_id);
 $stmt->execute();
@@ -45,7 +45,7 @@ include __DIR__ . '/../templates/header.php';
           Selesaikan pembayaran dalam waktu <strong><span id="countdown"></span></strong>.  
           Jika melewati batas waktu, booking akan otomatis dibatalkan.
         </div>
-      <?php elseif ($status === 'canceled'): ?>
+      <?php elseif ($status === 'cancelled'): ?>
         <div class="alert alert-danger">
           Booking ini sudah <strong>dibatalkan</strong>. Silakan buat booking baru.
         </div>
@@ -148,7 +148,7 @@ include __DIR__ . '/../templates/header.php';
 <script>
   <?php if ($status === 'pending'): ?>
 (function(){
-  var expireAt = <?= strtotime($created_at . ' +30 minutes') ?> * 1000;
+var expireAt = <?= strtotime($created_at . ' +30 minutes') ?> * 1000;
   var countdownEl = document.getElementById("countdown");
 
   function updateCountdown(){
