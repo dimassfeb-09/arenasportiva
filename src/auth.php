@@ -1,39 +1,49 @@
 <?php
 require_once 'db_connect.php';
 
-function registerUser($name, $phone, $email, $password) {
+function registerUser($name, $phone, $email, $username, $password) {
     global $mysqli;
-    
-    // Check if phone number already exists
+
+    // Cek nomor telepon sudah dipakai
     $stmt = $mysqli->prepare("SELECT id FROM users WHERE phone = ?");
     $stmt->bind_param("s", $phone);
     $stmt->execute();
     $result = $stmt->get_result();
-    
     if ($result->num_rows > 0) {
         return ['success' => false, 'message' => 'Nomor telepon sudah terdaftar!'];
     }
     $stmt->close();
-    
-    // Check if email already exists
+
+    // Cek email sudah dipakai
     $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-    
     if ($result->num_rows > 0) {
         return ['success' => false, 'message' => 'Email sudah terdaftar!'];
     }
     $stmt->close();
-    
+
+    // Cek username sudah dipakai
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        return ['success' => false, 'message' => 'Username sudah dipakai!'];
+    }
+    $stmt->close();
+
     // Hash password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-    
-    // Insert new user
-    $stmt = $mysqli->prepare("INSERT INTO users (name, phone, email, password, username, role) VALUES (?, ?, ?, ?, ?, 'user')");
-    $username = strtolower(str_replace(' ', '', $name)) . rand(100, 999); // Generate username from name
-    $stmt->bind_param("sssss", $name, $phone, $email, $hashed_password, $username);
-    
+
+    // Insert user baru
+    $stmt = $mysqli->prepare(
+        "INSERT INTO users (name, phone, email, username, password, role) 
+         VALUES (?, ?, ?, ?, ?, 'user')"
+    );
+    $stmt->bind_param("sssss", $name, $phone, $email, $username, $hashed_password);
+
     if ($stmt->execute()) {
         $stmt->close();
         return ['success' => true, 'message' => 'Registrasi berhasil! Silakan login.'];
