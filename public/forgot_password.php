@@ -71,7 +71,7 @@ include __DIR__ . '/../templates/header.php';
       <p class="text-center text-muted mb-4">Masukkan email Anda untuk menerima link reset password.</p>
 
       <?php if (!empty($message)): ?>
-        <div class="alert <?= $message_type === 'success' ? 'alert-success' : 'alert-danger' ?>">
+        <div class="alert <?= $message_type === 'success' ? 'alert-success' : 'alert-success' ?>">
           <?= htmlspecialchars($message) ?>
         </div>
       <?php endif; ?>
