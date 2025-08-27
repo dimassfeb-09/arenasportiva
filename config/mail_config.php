@@ -1,14 +1,15 @@
 <?php
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-require __DIR__ . '/../vendor/autoload.php';
 
 $mail = new PHPMailer(true);
+
+// Pakai SMTP, bukan mail() bawaan PHP
+$mail->isSMTP();
 $mail->Host       = 'smtp.gmail.com';
 $mail->SMTPAuth   = true;
-$mail->Username   = 'arenasportivamyid@gmail.com';
+$mail->Username   = 'arenasportivamyid@gmail.com'; // email Gmail
 $mail->Password   = 'kzjs eljg mzda ouia'; // app password
-$mail->SMTPSecure = 'tls';
+$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 $mail->Port       = 587;
+
 $mail->setFrom('arenasportivamyid@gmail.com', 'Arena Sportiva');
