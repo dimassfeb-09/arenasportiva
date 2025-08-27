@@ -13,11 +13,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Token tidak valid atau password kurang dari 6 karakter.';
     } else {
         // Cari user berdasarkan token
-        $stmt = $mysqli->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > NOW() LIMIT 1");
+        // Debug: Tampilkan token yang diterima
+        error_log("Received token: " . $token);
+        
+        $stmt = $mysqli->prepare("SELECT id, reset_token, reset_token_expiry FROM users WHERE reset_token = ? LIMIT 1");
         $stmt->bind_param('s', $token);
         $stmt->execute();
-        $stmt->bind_result($user_id);
+        $stmt->bind_result($user_id, $db_token, $expiry);
         if ($stmt->fetch()) {
+            error_log("Found user with ID: " . $user_id);
+            error_log("Token in DB: " . $db_token);
+            error_log("Expiry time: " . $expiry);
+            
+            // Cek apakah token sudah expired
+            if (strtotime($expiry) < time()) {
+                $error = 'Token sudah kadaluarsa. Silakan request reset password baru.';
+                $stmt->close();
+                return;
+            }
+            
             $stmt->close();
             $hashed = password_hash($new_password, PASSWORD_DEFAULT);
             $stmt2 = $mysqli->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?");

@@ -77,14 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
 
 // Handle tambah user baru
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
-    $name = trim($_POST['add_name']);
+    $username = trim($_POST['add_username']);
     $email = trim($_POST['add_email']);
     $phone = trim($_POST['add_phone']);
     $password = $_POST['add_password'];
-    if ($name && $email && $phone && strlen($password) >= 6) {
+    if ($username && $email && $phone && strlen($password) >= 6) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $mysqli->prepare("INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, 'user')");
-        $stmt->bind_param("ssss", $name, $email, $phone, $hashed_password);
+        $stmt = $mysqli->prepare("INSERT INTO users (username, email, phone, password, role) VALUES (?, ?, ?, ?, 'user')");
+        $stmt->bind_param("ssss", $username, $email, $phone, $hashed_password);
         if ($stmt->execute()) {
             $message = 'User baru berhasil ditambahkan!';
             $message_type = 'success';
@@ -551,8 +551,8 @@ $stmt->close();
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label for="userName" class="form-label">Nama Lengkap</label>
-                            <input type="text" class="form-control" id="userName" name="add_name" required>
+                            <label for="userName" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="userName" name="add_username" required>
                         </div>
                         <div class="mb-3">
                             <label for="userPhone" class="form-label">Nomor Telepon</label>

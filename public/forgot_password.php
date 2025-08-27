@@ -1,5 +1,10 @@
 <?php
+require_once __DIR__ . '/../src/db_connect.php';
 require_once __DIR__ . '/../src/auth.php';
+require '../vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 $message = '';
 $error = '';
@@ -22,10 +27,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt2->execute();
       $stmt2->close();
       // Kirim email link reset
-      $reset_link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . '/reset_password.php?token=' . $token;
-      $subject = 'Reset Password Arena Sportiva';
-      $body = "Halo $name,\n\nKlik link berikut untuk reset password akun Anda:\n$reset_link\n\nLink berlaku 1 jam.";
-      @mail($email, $subject, $body, "From: admin@arenasportiva.com\r\n");
+      $reset_link = 'https://arenasportiva.my.id/reset_password.php?token=' . $token;
+      
+      $mail = new PHPMailer(true);
+      
+      try {
+          // Get mail configuration
+          require '../config/mail_config.php';
+          
+          // Add recipient
+          $mail->addAddress($email);
+
+          // Content
+          $mail->isHTML(true);
+          $mail->Subject = 'Reset Password Arena Sportiva';
+          $mail->Body    = "Halo $name,<br><br>Klik link berikut untuk reset password akun Anda:<br>
+                           <a href='$reset_link'>Reset Password</a><br><br>Link berlaku 1 jam.";
+
+          $mail->send();
+          $mail_sent = true;
+      } catch (Exception $e) {
+          error_log("Failed to send email to: " . $email . ". Mailer Error: {$mail->ErrorInfo}");
+        $error = "Gagal mengirim email. Error: " . error_get_last()['message'];
+      }
       $message = 'Link reset password telah dikirim ke email Anda.';
     } else {
       $error = 'Email tidak ditemukan.';
