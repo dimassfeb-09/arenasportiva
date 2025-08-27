@@ -71,16 +71,11 @@ include __DIR__ . '/../templates/header.php';
       <p class="text-center text-muted mb-4">Masukkan email Anda untuk menerima link reset password.</p>
 
       <?php if (!empty($message)): ?>
-        <div class="alert alert-success small mb-3">
+        <div class="alert <?= $message_type === 'success' ? 'alert-success' : 'alert-danger' ?>">
           <?= htmlspecialchars($message) ?>
         </div>
       <?php endif; ?>
 
-      <?php if (!empty($error)): ?>
-        <div class="alert alert-danger small mb-3">
-          <?= htmlspecialchars($error) ?>
-        </div>
-      <?php endif; ?>
 
       <form method="post" novalidate>
         <div class="mb-3">
