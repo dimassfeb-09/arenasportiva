@@ -32,24 +32,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $mail = new PHPMailer(true);
       
       try {
-          // Get mail configuration
           require '../config/mail_config.php';
-          
-          // Add recipient
-          $mail->addAddress($email);
 
-          // Content
+          $mail->addAddress($email);
           $mail->isHTML(true);
           $mail->Subject = 'Reset Password Arena Sportiva';
           $mail->Body    = "Halo $name,<br><br>Klik link berikut untuk reset password akun Anda:<br>
-                           <a href='$reset_link'>Reset Password</a><br><br>Link berlaku 1 jam.";
+                          <a href='$reset_link'>Reset Password</a><br><br>Link berlaku 1 jam.";
 
-          $mail->send();
-          $mail_sent = true;
+          if ($mail->send()) {
+              $message = 'Link reset password telah dikirim ke email Anda.';
+          } else {
+              $error = "Gagal mengirim email. Error: " . $mail->ErrorInfo;
+          }
       } catch (Exception $e) {
           error_log("Failed to send email to: " . $email . ". Mailer Error: {$mail->ErrorInfo}");
-        $error = "Gagal mengirim email. Error: " . error_get_last()['message'];
+          $error = "Gagal mengirim email. Error: {$mail->ErrorInfo}";
       }
+
       $message = 'Link reset password telah dikirim ke email Anda.';
     } else {
       $error = 'Email tidak ditemukan.';
