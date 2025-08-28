@@ -1,488 +1,331 @@
 <?php
-session_start();
-require_once __DIR__ . '/../../src/db_connect.php';
-
-
-// Check if user is logged in as admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: login.php');
-    exit();
-}
+$page_title = "Kelola Transaksi";
+include '../../templates/admin_header.php';
 
 $message = '';
 $message_type = '';
 
+$sql = "SELECT b.*, u.name as user_name, u.phone as user_phone, 
+    c.name as court_name,
+    p.amount as payment_amount, p.status as payment_status, p.proof_url as proof_of_payment,
+    c.price_per_hour * b.duration_hours as subtotal,
+    CASE 
+        WHEN b.duration_hours >= 6 THEN ROUND((c.price_per_hour * b.duration_hours) * 0.10)
+        ELSE 0
+    END as duration_discount,
+    CASE 
+        WHEN b.duration_hours >= 6 THEN 
+            (c.price_per_hour * b.duration_hours) - 
+            ROUND((c.price_per_hour * b.duration_hours) * 0.10)
+        ELSE 
+            c.price_per_hour * b.duration_hours
+    END as total_price,
+    CASE 
+        WHEN b.status = 'cancelled' AND b.cancel_reason = 'user_cancelled' THEN 'Cancelled by User'
+        WHEN b.status = 'cancelled' OR p.status = 'failed' THEN 'Cancelled'
+        WHEN p.status IS NULL THEN 'Belum Bayar'
+        ELSE p.status
+    END as display_status
+FROM bookings b
+LEFT JOIN users u ON b.user_id = u.id
+LEFT JOIN courts c ON b.court_id = c.id
+LEFT JOIN payments p ON b.id = p.booking_id
+ORDER BY b.created_at DESC";
+
+$result = $mysqli->query($sql);
+
 // Handle payment confirmation/rejection
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $payment_id = $_POST['payment_id'];
-    $action = $_POST['action']; // 'approve' or 'reject'
-    
-    if ($action === 'approve') {
-        // Start transaction
+    try {
+        $booking_id = $_POST['booking_id'];
+        $action = $_POST['action']; // 'approve' or 'reject'
+
         $mysqli->begin_transaction();
-        
+
         try {
-                         // Update payment status
-             $stmt = $mysqli->prepare("UPDATE payments SET status = 'success' WHERE id = ?");
-            $stmt->bind_param("i", $payment_id);
-            $stmt->execute();
-            $stmt->close();
+            $booking_id = (int)$booking_id;
             
-            // Update booking status
-            $stmt = $mysqli->prepare("UPDATE bookings SET status = 'confirmed' WHERE id = (SELECT booking_id FROM payments WHERE id = ?)");
-            $stmt->bind_param("i", $payment_id);
-            $stmt->execute();
-            $stmt->close();
-            
+            if ($action === 'approve') {
+                // Cek status booking terlebih dahulu
+                $check_stmt = $mysqli->prepare("SELECT status FROM bookings WHERE id = ?");
+                $check_stmt->bind_param('i', $booking_id);
+                $check_stmt->execute();
+                $booking_result = $check_stmt->get_result();
+                $booking_data = $booking_result->fetch_assoc();
+                $check_stmt->close();
+
+                if ($booking_data['status'] !== 'pending') {
+                    throw new Exception("Booking tidak dalam status pending");
+                }
+
+                // Update booking and payment status
+                $query1 = "UPDATE bookings SET status = 'confirmed' WHERE id = ? AND status = 'pending'";
+                $stmt1 = $mysqli->prepare($query1);
+                $stmt1->bind_param('i', $booking_id);
+                
+                $query2 = "UPDATE payments SET status = 'success' WHERE booking_id = ?";
+                $stmt2 = $mysqli->prepare($query2);
+                $stmt2->bind_param('i', $booking_id);
+                
+                if (!$stmt1->execute()) {
+                    throw new Exception("Gagal mengupdate status booking");
+                }
+                if (!$stmt2->execute()) {
+                    throw new Exception("Gagal mengupdate status pembayaran");
+                }
+                
+                $stmt1->close();
+                $stmt2->close();
+                
+                $message = 'Booking berhasil dikonfirmasi!';
+                $message_type = 'success';
+            } elseif ($action === 'reject') {
+                // Update booking and payment status
+                $query1 = "UPDATE bookings SET status = 'rejected' WHERE id = ? AND status = 'pending'";
+                $stmt1 = $mysqli->prepare($query1);
+                $stmt1->bind_param('i', $booking_id);
+                
+                $query2 = "UPDATE payments SET status = 'failed' WHERE booking_id = ?";
+                $stmt2 = $mysqli->prepare($query2);
+                $stmt2->bind_param('i', $booking_id);
+                
+                if (!$stmt1->execute()) {
+                    throw new Exception("Gagal mengupdate status booking");
+                }
+                if (!$stmt2->execute()) {
+                    throw new Exception("Gagal mengupdate status pembayaran");
+                }
+                
+                $stmt1->close();
+                $stmt2->close();
+                
+                $message = 'Booking berhasil ditolak.';
+                $message_type = 'warning';
+            }
+
             $mysqli->commit();
-            $message = 'Pembayaran berhasil dikonfirmasi!';
-            $message_type = 'success';
-            
+            } catch (Exception $e) {
+                $mysqli->rollback();
+                throw $e;
+            }
         } catch (Exception $e) {
-            $mysqli->rollback();
-            $message = 'Gagal mengkonfirmasi pembayaran: ' . $e->getMessage();
+            if ($mysqli->connect_errno) {
+                $mysqli->rollback();
+            }
+            $message = 'Gagal memproses permintaan: ' . $e->getMessage();
             $message_type = 'danger';
         }
-        
-         } elseif ($action === 'reject') {
-         // Start transaction
-         $mysqli->begin_transaction();
-         
-         try {
-             // Get payment details first
-             $stmt = $mysqli->prepare("SELECT p.paid_amount, p.booking_id, b.user_id FROM payments p JOIN bookings b ON p.booking_id = b.id WHERE p.id = ?");
-             $stmt->bind_param("i", $payment_id);
-             $stmt->execute();
-             $result = $stmt->get_result();
-             $payment = $result->fetch_assoc();
-             $stmt->close();
-             
-             if (!$payment) {
-                 throw new Exception('Data pembayaran tidak ditemukan');
-             }
-             
-             // Update payment status
-             $stmt = $mysqli->prepare("UPDATE payments SET status = 'failed' WHERE id = ?");
-             $stmt->bind_param("i", $payment_id);
-             $stmt->execute();
-             $stmt->close();
-             
-             // Update booking status
-             $stmt = $mysqli->prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?");
-             $stmt->bind_param("i", $payment['booking_id']);
-             $stmt->execute();
-             $stmt->close();
-             
-             // Tidak ada refund ke saldo, user harus hubungi admin
-             $mysqli->commit();
-             $message = 'Pembayaran ditolak. Silakan segera hubungi admin untuk pengembalian dana.';
-             $message_type = 'warning';
-         } catch (Exception $e) {
-             $mysqli->rollback();
-             $message = 'Gagal menolak pembayaran: ' . $e->getMessage();
-             $message_type = 'danger';
-         }
-     }
 }
 
-// Get all payments with user and booking details
-$stmt = $mysqli->prepare("
-    SELECT p.*, u.username as username, u.phone as user_phone, b.start_datetime, c.name as court_name,
-           p.proof_image, p.proof_url, p.discount
-    FROM payments p
-    JOIN bookings b ON p.booking_id = b.id
+// Get all transactions
+$search = $_GET['search'] ?? '';
+$status_filter = $_GET['status'] ?? 'all';
+
+$sql = "SELECT b.*, u.name as user_name, u.phone as user_phone, c.name as court_name,
+    p.amount as payment_amount, p.status as payment_status, p.proof_url as proof_of_payment,
+    c.price_per_hour * b.duration_hours as subtotal,
+    CASE 
+        WHEN b.duration_hours >= 6 THEN ROUND((c.price_per_hour * b.duration_hours) * 0.10)
+        WHEN b.duration_hours >= 4 THEN ROUND((c.price_per_hour * b.duration_hours) * 0.05)
+        ELSE 0
+    END as duration_discount,
+    CASE 
+        WHEN b.duration_hours >= 6 THEN 
+            (c.price_per_hour * b.duration_hours) - 
+            ROUND((c.price_per_hour * b.duration_hours) * 0.10)
+        WHEN b.duration_hours >= 4 THEN 
+            (c.price_per_hour * b.duration_hours) - 
+            ROUND((c.price_per_hour * b.duration_hours) * 0.05)
+        ELSE 
+            c.price_per_hour * b.duration_hours
+    END as total_price,
+    CASE 
+        WHEN b.status = 'cancelled' AND b.cancel_reason = 'user_cancelled' THEN 'Cancelled by User'
+        WHEN b.status = 'cancelled' OR p.status = 'failed' THEN 'Cancelled'
+        WHEN b.status = 'pending' AND p.status IS NULL THEN 'Pending'
+        WHEN p.status IS NULL THEN 'Belum Bayar'
+        WHEN p.status = 'success' AND b.status = 'confirmed' THEN 'Success'
+        ELSE p.status
+    END as display_status
+    FROM bookings b
     JOIN users u ON b.user_id = u.id
     JOIN courts c ON b.court_id = c.id
-    ORDER BY p.created_at DESC
-");
-$stmt->execute();
-$payments = $stmt->get_result();
-$stmt->close();
+    LEFT JOIN payments p ON b.id = p.booking_id";
+
+$where_clauses = [];
+
+if (!empty($search)) {
+    $search = $mysqli->real_escape_string($search);
+    $where_clauses[] = "(u.name LIKE '%$search%' OR c.name LIKE '%$search%')";
+}
+
+if ($status_filter !== 'all') {
+    $status = $mysqli->real_escape_string($status_filter);
+    switch($status) {
+        case 'unpaid':
+            $where_clauses[] = "p.status IS NULL";
+            break;
+        case 'user_cancelled':
+            $where_clauses[] = "b.status = 'cancelled' AND b.cancel_reason = 'user_cancelled'";
+            break;
+        case 'cancelled':
+            $where_clauses[] = "(b.status = 'cancelled' AND b.cancel_reason != 'user_cancelled') OR p.status = 'failed'";
+            break;
+        default:
+            $where_clauses[] = "p.status = '$status'";
+    }
+}
+
+if (!empty($where_clauses)) {
+    $sql .= " WHERE " . implode(' AND ', $where_clauses);
+}
+
+$sql .= " ORDER BY b.created_at DESC";
+$result = $mysqli->query($sql);
+
+$bookings = [];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $bookings[] = $row;
+    }
+}
+
 ?>
 
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Transaksi - Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #dc3545;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-        }
-        
-        body {
-            background: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .sidebar {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            z-index: 1000;
-        }
-        
-        .sidebar-header {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar-brand {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-decoration: none;
-        }
-        
-        .sidebar-nav {
-            padding: 1rem 0;
-        }
-        
-        .nav-item {
-            margin-bottom: 0.5rem;
-        }
-        
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-radius: 0 25px 25px 0;
-            margin-right: 1rem;
-        }
-        
-        .nav-link:hover, .nav-link.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-        
-        .main-content {
-            margin-left: 250px;
-            padding: 2rem;
-        }
-        
-        .top-bar {
-            background: white;
-            padding: 1rem 2rem;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .transactions-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
+<?php if ($message): ?>
+<div class="alert alert-<?= $message_type ?> alert-dismissible fade show" role="alert">
+    <?= $message ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+<?php endif; ?>
 
-        .payment-proof {
-            max-width: 100px;
-            height: auto;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .payment-proof:hover {
-            transform: scale(1.1);
-        }
-
-        #proofImage {
-            max-height: 80vh;
-            object-fit: contain;
-        }
-        
-        .table {
-            margin-bottom: 0;
-        }
-        
-        .table th {
-            border-top: none;
-            font-weight: 600;
-            color: var(--secondary-color);
-            background: #f8f9fa;
-        }
-        
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-        
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-success { background: #d4edda; color: #155724; }
-        .status-failed { background: #f8d7da; color: #721c24; }
-        
-        .btn-action {
-            padding: 0.25rem 0.75rem;
-            font-size: 0.8rem;
-            border-radius: 20px;
-        }
-        
-        .payment-proof {
-            max-width: 100px;
-            max-height: 100px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-        
-        .payment-proof:hover {
-            transform: scale(1.1);
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <a href="dashboard.php" class="sidebar-brand">
-                <i class="fas fa-shield-alt me-2"></i>
-                Admin Panel
-            </a>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Daftar Transaksi</h5>
+        <div class="d-flex">
+            <form class="me-2" method="get">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>">
+                    <select class="form-select" name="status" onchange="this.form.submit()">
+                        <option value="all" <?= $status_filter === 'all' ? 'selected' : '' ?>>Semua Status</option>
+                        <option value="pending" <?= $status_filter === 'pending' ? 'selected' : '' ?>>Pending</option>
+                        <option value="success" <?= $status_filter === 'success' ? 'selected' : '' ?>>Success</option>
+                        <option value="cancelled" <?= $status_filter === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                        <option value="user_cancelled" <?= $status_filter === 'user_cancelled' ? 'selected' : '' ?>>Cancelled by User</option>
+                        <option value="unpaid" <?= $status_filter === 'unpaid' ? 'selected' : '' ?>>Belum Bayar</option>
+                    </select>
+                    <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
         </div>
-        
-        <nav class="sidebar-nav">
-            <div class="nav-item">
-                <a href="dashboard.php" class="nav-link">
-                    <i class="fas fa-tachometer-alt me-2"></i>
-                    Dashboard
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="courts.php" class="nav-link">
-                    <i class="fas fa-futbol me-2"></i>
-                    Kelola Lapangan
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="transactions.php" class="nav-link active">
-                    <i class="fas fa-exchange-alt me-2"></i>
-                    Kelola Transaksi
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="users.php" class="nav-link">
-                    <i class="fas fa-users me-2"></i>
-                    Kelola User
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="logout.php" class="nav-link">
-                    <i class="fas fa-sign-out-alt me-2"></i>
-                    Logout
-                </a>
-            </div>
-        </nav>
     </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Top Bar -->
-        <div class="top-bar">
-            <div>
-                <h4 class="mb-0">
-                    <i class="fas fa-exchange-alt me-2 text-primary"></i>
-                    Kelola Transaksi
-                </h4>
-                <small class="text-muted">Konfirmasi atau tolak pembayaran user</small>
-            </div>
-            <div>
-                <a href="dashboard.php" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-arrow-left me-1"></i>
-                    Kembali
-                </a>
-            </div>
-        </div>
-
-        <?php if ($message): ?>
-            <div class="alert alert-<?= $message_type ?> alert-dismissible fade show" role="alert">
-                <i class="fas fa-info-circle me-2"></i>
-                <?= $message ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-
-        <!-- Transactions Table -->
-        <div class="transactions-card">
-            <h5 class="mb-3">
-                <i class="fas fa-list me-2"></i>
-                Daftar Transaksi
-            </h5>
-            
-            <?php if ($payments->num_rows > 0): ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Pengguna</th>
+                        <th>Detail Booking</th>
+                        <th>Total</th>
+                        <th>Bukti Bayar</th>
+                        <th>Status</th>
+                        <th class="text-end">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (count($bookings) > 0): ?>
+                        <?php foreach ($bookings as $booking): ?>
                             <tr>
-                                <th>User</th>
-                                <th>Lapangan</th>
-                                <th>Tanggal & Jam</th>
-                                                                 <th>Jumlah</th>
-                                 <th>Discount</th>
-                                 <th>Bukti Bayar</th>
-                                <th>Status</th>
-                                <th>Tanggal Bayar</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($payment = $payments->fetch_assoc()): ?>
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <strong><?= htmlspecialchars($payment['username']) ?></strong>
-                                            <br>
-                                            <small class="text-muted"><?= htmlspecialchars($payment['user_phone']) ?></small>
-                                        </div>
-                                    </td>
-                                    <td><?= htmlspecialchars($payment['court_name']) ?></td>
-                                    <td>
-                                        <div>
-                                            <strong><?= date('d/m/Y', strtotime($payment['start_datetime'])) ?></strong>
-                                            <br>
-                                            <small class="text-muted"><?= date('H:i', strtotime($payment['start_datetime'])) ?></small>
-                                        </div>
-                                    </td>
-                                                                         <td>
-                                         <strong class="text-success">
-                                             Rp <?= number_format($payment['paid_amount'], 0, ',', '.') ?>
-                                         </strong>
-                                     </td>
-                                     <td>
-                                         <?php if ($payment['discount'] > 0): ?>
-                                             <span class="text-danger">
-                                                 -Rp <?= number_format($payment['discount'], 0, ',', '.') ?>
-                                             </span>
-                                         <?php else: ?>
-                                             <span class="text-muted">-</span>
-                                         <?php endif; ?>
-                                     <td>
-                                        <?php if (!empty($payment['proof_image'])): ?>
-                                            <img src="/uploads/<?= htmlspecialchars($payment['proof_image']) ?>" 
-                                                alt="Bukti Pembayaran" 
-                                                class="payment-proof"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#proofModal"
-                                                data-src="/uploads/<?= htmlspecialchars($payment['proof_image']) ?>"
-                                                onerror="this.onerror=null; this.src='/assets/img/no-image.png';">
-                                        <?php else: ?>
-                                            <span class="text-muted">Tidak ada</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $status_class = '';
-                                        switch ($payment['status']) {
-                                            case 'pending': $status_class = 'status-pending'; break;
-                                            case 'success': $status_class = 'status-success'; break;
-                                            case 'failed': $status_class = 'status-failed'; break;
-                                        }
-                                        ?>
-                                        <span class="status-badge <?= $status_class ?>">
-                                            <?= ucfirst($payment['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            <?= date('d/m/Y H:i', strtotime($payment['created_at'])) ?>
+                                <td>#<?= $booking['id'] ?></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($booking['user_name']) ?></strong>
+                                    <br>
+                                    <small class="text-muted"><?= htmlspecialchars($booking['user_phone']) ?></small>
+                                </td>
+                                <td>
+                                    <strong><?= htmlspecialchars($booking['court_name']) ?></strong>
+                                    <br>
+                                    <small class="text-muted"><?= date('d/m/Y H:i', strtotime($booking['start_datetime'])) ?></small>
+                                </td>
+                                <td>
+                                    <?php if ($booking['duration_discount'] > 0): ?>
+                                        <span class="text-decoration-line-through text-muted">
+                                            Rp <?= number_format($booking['subtotal'], 0, ',', '.') ?>
+                                        </span><br>
+                                        <small class="text-success d-block">
+                                            Diskon Durasi (<?= $booking['duration_hours'] >= 6 ? '10%' : '5%' ?>): 
+                                            Rp <?= number_format($booking['duration_discount'], 0, ',', '.') ?>
                                         </small>
-                                    </td>
-                                    <td>
-                                        <?php if ($payment['status'] === 'pending'): ?>
-                                            <form method="POST" style="display: inline;">
-                                                <input type="hidden" name="payment_id" value="<?= $payment['id'] ?>">
-                                                <button type="submit" name="action" value="approve" 
-                                                        class="btn btn-success btn-action me-1"
-                                                        onclick="return confirm('Konfirmasi pembayaran ini?')">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                                <button type="submit" name="action" value="reject" 
-                                                        class="btn btn-danger btn-action"
-                                                        onclick="return confirm('Tolak pembayaran ini? Dana akan dikembalikan ke saldo user.')">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </form>
-                                        <?php else: ?>
-                                            <span class="text-muted">Selesai</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-inbox fa-3x mb-3"></i>
-                    <p>Belum ada transaksi</p>
-                </div>
-            <?php endif; ?>
+                                        <span class="fw-bold text-success">
+                                            Rp <?= number_format($booking['total_price'], 0, ',', '.') ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="fw-bold">
+                                            Rp <?= number_format($booking['total_price'], 0, ',', '.') ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (!empty($booking['proof_of_payment'])): ?>
+                                        <a href="<?= htmlspecialchars($booking['proof_of_payment']) ?>" target="_blank">
+                                            <img src="<?= htmlspecialchars($booking['proof_of_payment']) ?>" alt="Bukti" height="40" class="rounded">
+                                        </a>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php
+                                    $status_class = match(strtolower($booking['display_status'])) {
+                                        'cancelled by user' => 'danger',
+                                        'cancelled' => 'danger',
+                                        'belum bayar' => 'secondary',
+                                        'pending' => 'warning',
+                                        'success' => 'success',
+                                        default => 'secondary'
+                                    };
+                                    ?>
+                                    <span class="badge bg-<?= $status_class ?>">
+                                        <?= $booking['display_status'] ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <?php if ($booking['payment_status'] === 'pending'): ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Aksi
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <form method="POST" onsubmit="return confirm('Konfirmasi pembayaran ini?');">
+                                                        <input type="hidden" name="booking_id" value="<?= $booking['id'] ?>">
+                                                        <button type="submit" name="action" value="approve" class="dropdown-item"><i class="fas fa-check me-2"></i>Konfirmasi</button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form method="POST" onsubmit="return confirm('Tolak pembayaran ini?');">
+                                                        <input type="hidden" name="booking_id" value="<?= $booking['id'] ?>">
+                                                        <button type="submit" name="action" value="reject" class="dropdown-item text-danger"><i class="fas fa-times me-2"></i>Tolak</button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">Selesai</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Tidak ada data transaksi.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <!-- Proof Image Modal -->
-    <div class="modal fade" id="proofModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Bukti Pembayaran</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img id="proofImage" src="" alt="Bukti Pembayaran" class="img-fluid">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Handle proof image modal
-        document.addEventListener('DOMContentLoaded', function() {
-            const proofModal = document.getElementById('proofModal');
-            if (proofModal) {
-                proofModal.addEventListener('show.bs.modal', function(event) {
-                    const button = event.relatedTarget;
-                    const src = button.getAttribute('data-src');
-                    const modalImg = document.getElementById('proofImage');
-                    modalImg.src = src;
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+<?php include '../../templates/admin_footer.php'; ?>

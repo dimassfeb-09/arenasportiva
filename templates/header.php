@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
+    <link href="assets/css/custom.css" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation -->
@@ -40,19 +41,7 @@
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user-circle me-2"></i>
                                 <span class="d-none d-sm-inline"><?= htmlspecialchars($_SESSION['name']) ?></span>
-                                <?php
-                                // Tampilkan saldo diskon di navbar
-                                if (isset($_SESSION['user_id'])) {
-                                    require_once __DIR__ . '/../src/db_connect.php';
-                                    $stmt = $mysqli->prepare("SELECT coupon_discount FROM users WHERE id = ?");
-                                    $stmt->bind_param('i', $_SESSION['user_id']);
-                                    $stmt->execute();
-                                    $stmt->bind_result($coupon_discount_nav);
-                                    $stmt->fetch();
-                                    $stmt->close();
-                                    echo '<span class="badge bg-success ms-2">Diskon: Rp ' . number_format($coupon_discount_nav, 0, ',', '.') . '</span>';
-                                }
-                                ?>
+
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Profile</a></li>
@@ -80,20 +69,24 @@
 
     <!-- Auth Offcanvas -->
     <div class="offcanvas offcanvas-end" tabindex="-1" id="authOffcanvas">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">Login / Register</h5>
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title fw-bold">Login / Register</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
-            <ul class="nav nav-tabs" id="authTabs" role="tablist">
+            <ul class="nav nav-pills nav-justified mb-4" id="authTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Login</button>
+                    <button class="nav-link active rounded-pill" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">Register</button>
+                    <button class="nav-link rounded-pill" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">
+                        <i class="fas fa-user-plus me-2"></i>Register
+                    </button>
                 </li>
             </ul>
-            <div class="tab-content mt-3" id="authTabContent">
+            <div class="tab-content" id="authTabContent">
                 <div class="tab-pane fade show active" id="login" role="tabpanel">
                     <?php if (!empty($_SESSION['login_error'])): ?>
                         <div class="alert alert-danger small mb-3">
@@ -101,53 +94,69 @@
                         </div>
                         <?php unset($_SESSION['login_error']); ?>
                     <?php endif; ?>
-                    <?php if (!empty($_SESSION['login_error'])): ?>
-                        <div class="alert alert-danger small mb-3">
-                            <?= htmlspecialchars($_SESSION['login_error']) ?>
+                    
+                    <form action="index.php" method="POST" class="needs-validation" novalidate>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="loginUsername" name="username" placeholder="Username" required>
+                            <label for="loginUsername"><i class="fas fa-user me-2"></i>Username</label>
                         </div>
-                        <?php unset($_SESSION['login_error']); ?>
-                    <?php endif; ?>
-                    <form action="index.php" method="POST">
-                        <div class="mb-3">
-                            <label for="loginUsername" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="loginUsername" name="username" placeholder="Masukkan username Anda" required>
-                            <input type="hidden" name="identifier" value="">
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control pe-5" id="loginPassword" name="password" placeholder="Password" required>
+                            <label for="loginPassword"><i class="fas fa-lock me-2"></i>Password</label>
+                            <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted px-3" 
+                                    style="z-index: 10;" tabindex="-1" 
+                                    onclick="togglePassword('loginPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
-                        <div class="mb-3">
-                            <label for="loginPassword" class="form-label">Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="loginPassword" name="password" required>
-                                <button type="button" class="btn btn-outline-secondary" tabindex="-1" onclick="togglePassword('loginPassword', this)"><i class="fa fa-eye"></i></button>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Login</button>
-                        <div class="text-center mt-2">
-                            <a href="forgot_password.php" class="small">Lupa Password?</a>
+                        <button type="submit" class="btn btn-primary w-100 py-3 mb-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                        <div class="text-center">
+                            <a href="forgot_password.php" class="text-decoration-none">
+                                <i class="fas fa-key me-1"></i>Lupa Password?
+                            </a>
                         </div>
                     </form>
                 </div>
                 <div class="tab-pane fade" id="register" role="tabpanel">
-                    <form action="register.php" method="POST">
-                        <div class="mb-3">
-                            <label for="registerUsername" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="registerUsername" name="username" placeholder="Masukkan username Anda" required>
+                    <form action="register.php" method="POST" class="needs-validation" novalidate>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="registerName" name="name" placeholder="Name" required>
+                            <label for="registerName"><i class="fas fa-user me-2"></i>Nama Lengkap</label>
                         </div>
-                        <div class="mb-3">
-                            <label for="registerPhone" class="form-label">Nomor Telepon</label>
-                            <input type="text" class="form-control" id="registerPhone" name="phone" placeholder="08XXXXXXXXXX" required>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="registerUsername" name="username" placeholder="Username" required>
+                            <label for="registerUsername"><i class="fas fa-user me-2"></i>Username</label>
                         </div>
-                        <div class="mb-3">
-                            <label for="registerEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="registerEmail" name="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="registerPassword" class="form-label">Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="registerPassword" name="password" required>
-                                <button type="button" class="btn btn-outline-secondary" tabindex="-1" onclick="togglePassword('registerPassword', this)"><i class="fa fa-eye"></i></button>
+                        <div class="form-floating mb-3">
+                            <input type="tel" class="form-control" id="registerPhone" name="phone" placeholder="08XXXXXXXXXX" 
+                                   pattern="08[0-9]{8,11}" required>
+                            <label for="registerPhone"><i class="fas fa-phone me-2"></i>Nomor Telepon</label>
+                            <div class="invalid-feedback">
+                                Masukkan nomor telepon yang valid (contoh: 081234567890)
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success w-100">Register</button>
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control" id="registerEmail" name="email" placeholder="name@example.com" required>
+                            <label for="registerEmail"><i class="fas fa-envelope me-2"></i>Email</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control pe-5" id="registerPassword" name="password" 
+                                   placeholder="Password" minlength="6" required>
+                            <label for="registerPassword"><i class="fas fa-lock me-2"></i>Password</label>
+                            <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted px-3" 
+                                    style="z-index: 10;" tabindex="-1" 
+                                    onclick="togglePassword('registerPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <div class="invalid-feedback">
+                                Password minimal 6 karakter
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 py-3">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </button>
                     </form>
                 </div>
             </div>

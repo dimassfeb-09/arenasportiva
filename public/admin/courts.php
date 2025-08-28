@@ -1,444 +1,305 @@
 <?php
-session_start();
-require_once __DIR__ . '/../../src/db_connect.php';
-
-// Check if user is logged in as admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: login.php');
-    exit();
-}
+$page_title = "Kelola Lapangan";
+include '../../templates/admin_header.php';
 
 $message = '';
 $message_type = '';
 
-// Handle court status toggle
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_status'])) {
-    $court_id = $_POST['court_id'];
-    $new_status = $_POST['new_status'];
-    
-    $stmt = $mysqli->prepare("UPDATE courts SET status = ? WHERE id = ?");
-    $stmt->bind_param("si", $new_status, $court_id);
-    
-    if ($stmt->execute()) {
-        $message = 'Status lapangan berhasil diubah!';
-        $message_type = 'success';
-    } else {
-        $message = 'Gagal mengubah status lapangan.';
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        // Handle court status toggle
+        if (isset($_POST['toggle_status'])) {
+            $court_id = (int)$_POST['court_id'];
+            $new_status = $mysqli->real_escape_string($_POST['new_status']);
+            $query = "UPDATE courts SET status = '$new_status' WHERE id = $court_id";
+            if ($mysqli->query($query)) {
+                $message = 'Status lapangan berhasil diubah!';
+                $message_type = 'success';
+            } else {
+                throw new Exception('Gagal mengubah status lapangan!');
+            }
+        }
+
+        // Handle add court
+        if (isset($_POST['add_court'])) {
+            $name = trim($_POST['name']);
+            $type = $_POST['type'];
+            $price_per_hour = filter_var($_POST['price_per_hour'], FILTER_VALIDATE_INT);
+            $description = trim($_POST['description']);
+
+            if ($name && $type && $price_per_hour !== false && $price_per_hour > 0) {
+                $name = $mysqli->real_escape_string($name);
+                $type = $mysqli->real_escape_string($type);
+                $description = $mysqli->real_escape_string($description);
+                
+                $query = "INSERT INTO courts (name, type, price_per_hour, description, status) 
+                         VALUES ('$name', '$type', $price_per_hour, '$description', 'available')";
+                if ($mysqli->query($query)) {
+                    $message = 'Lapangan baru berhasil ditambahkan!';
+                    $message_type = 'success';
+                } else {
+                    throw new Exception("Gagal menambah lapangan");
+                }
+            } else {
+                throw new Exception('Data tidak lengkap atau harga tidak valid!');
+            }
+        }
+
+        // Handle edit court
+        if (isset($_POST['edit_court'])) {
+            $court_id = filter_var($_POST['court_id'], FILTER_VALIDATE_INT);
+            $name = trim($_POST['name']);
+            $type = $_POST['type'];
+            $price_per_hour = filter_var($_POST['price_per_hour'], FILTER_VALIDATE_INT);
+            $description = trim($_POST['description']);
+
+            if ($court_id && $name && $type && $price_per_hour !== false && $price_per_hour > 0) {
+                $name = $mysqli->real_escape_string($name);
+                $type = $mysqli->real_escape_string($type);
+                $description = $mysqli->real_escape_string($description);
+                
+                $query = "UPDATE courts SET name = '$name', type = '$type', 
+                         price_per_hour = $price_per_hour, description = '$description' 
+                         WHERE id = $court_id";
+                if ($mysqli->query($query)) {
+                    $message = 'Lapangan berhasil diupdate!';
+                    $message_type = 'success';
+                } else {
+                    throw new Exception("Gagal mengupdate lapangan");
+                }
+            } else {
+                throw new Exception('Data tidak lengkap atau harga tidak valid!');
+            }
+        }
+
+        // Handle delete court
+        if (isset($_POST['delete_court'])) {
+            $court_id = (int)$_POST['court_id'];
+            if ($court_id) {
+                // Check if court has any bookings
+                $result = $mysqli->query("SELECT COUNT(*) as count FROM bookings WHERE court_id = $court_id");
+                $count = $result->fetch_assoc()['count'];
+                
+                if ($count > 0) {
+                    throw new Exception('Tidak dapat menghapus lapangan karena masih ada booking terkait.');
+                }
+                
+                if ($mysqli->query("DELETE FROM courts WHERE id = $court_id")) {
+                    $message = 'Lapangan berhasil dihapus!';
+                    $message_type = 'success';
+                } else {
+                    throw new Exception('Gagal menghapus lapangan.');
+                }
+            }
+        }
+    } catch (Exception $e) {
+        $message = $e->getMessage();
         $message_type = 'danger';
     }
-    $stmt->close();
 }
 
 // Get all courts with booking statistics
-$stmt = $mysqli->prepare("
-    SELECT c.*, 
+$search = $_GET['search'] ?? '';
+$sql = "SELECT c.*, 
            COUNT(b.id) as total_bookings,
-           SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_bookings,
-           SUM(CASE WHEN b.status = 'pending' THEN 1 ELSE 0 END) as pending_bookings
+           SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_bookings
     FROM courts c
-    LEFT JOIN bookings b ON c.id = b.court_id
-    GROUP BY c.id
-    ORDER BY c.id ASC
-");
-$stmt->execute();
-$courts = $stmt->get_result();
-$stmt->close();
+    LEFT JOIN bookings b ON c.id = b.court_id";
+
+if (!empty($search)) {
+    $search = $mysqli->real_escape_string($search);
+    $sql .= " WHERE c.name LIKE '%$search%' OR c.type LIKE '%$search%' OR c.description LIKE '%$search%'";
+}
+
+$sql .= " GROUP BY c.id ORDER BY c.id ASC";
+$result = $mysqli->query($sql);
+
+$courts = [];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $courts[] = $row;
+    }
+}
 ?>
-
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Lapangan - Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #dc3545;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-        }
-        
-        body {
-            background: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .sidebar {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            z-index: 1000;
-        }
-        
-        .sidebar-header {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar-brand {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-decoration: none;
-        }
-        
-        .sidebar-nav {
-            padding: 1rem 0;
-        }
-        
-        .nav-item {
-            margin-bottom: 0.5rem;
-        }
-        
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-radius: 0 25px 25px 0;
-            margin-right: 1rem;
-        }
-        
-        .nav-link:hover, .nav-link.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-        
-        .main-content {
-            margin-left: 250px;
-            padding: 2rem;
-        }
-        
-        .top-bar {
-            background: white;
-            padding: 1rem 2rem;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .courts-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .table {
-            margin-bottom: 0;
-        }
-        
-        .table th {
-            border-top: none;
-            font-weight: 600;
-            color: var(--secondary-color);
-            background: #f8f9fa;
-        }
-        
-        .court-image {
-            width: 80px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 2px solid #e9ecef;
-        }
-        
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-        
-        .status-available { background: #d4edda; color: #155724; }
-        .status-maintenance { background: #fff3cd; color: #856404; }
-        .status-unavailable { background: #f8d7da; color: #721c24; }
-        
-        .btn-action {
-            padding: 0.25rem 0.75rem;
-            font-size: 0.8rem;
-            border-radius: 20px;
-        }
-        
-        .stats-mini {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 0.8rem;
-        }
-        
-        .stat-mini {
-            padding: 0.2rem 0.5rem;
-            border-radius: 10px;
-            font-weight: 500;
-        }
-        
-        .stat-bookings { background: #e3f2fd; color: #1976d2; }
-        .stat-confirmed { background: #e8f5e8; color: #2e7d32; }
-        .stat-pending { background: #fff3cd; color: #856404; }
-        
-        .court-type-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 15px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .type-futsal { background: #e3f2fd; color: #1976d2; }
-        .type-badminton { background: #f3e5f5; color: #7b1fa2; }
-        
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-        
-        .status-available { background: #d4edda; color: #155724; }
-        .status-maintenance { background: #fff3cd; color: #856404; }
-        .status-unavailable { background: #f8d7da; color: #721c24; }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <a href="dashboard.php" class="sidebar-brand">
-                <i class="fas fa-shield-alt me-2"></i>
-                Admin Panel
-            </a>
+<div class="modal fade" id="courtModal" tabindex="-1" aria-labelledby="courtModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="courtModalLabel">...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="court_id" id="court_id">
+                    <div class="mb-3">
+                        <label for="courtName" class="form-label">Nama Lapangan</label>
+                        <input type="text" class="form-control" id="courtName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="courtType" class="form-label">Jenis</label>
+                        <select class="form-select" id="courtType" name="type" required>
+                            <option value="futsal">Futsal</option>
+                            <option value="badminton">Badminton</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="courtPrice" class="form-label">Harga per Jam</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="number" class="form-control" id="courtPrice" name="price_per_hour" min="1000" step="1000" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="courtDescription" class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="courtDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="modalSubmitButton" name="">Simpan</button>
+                </div>
+            </form>
         </div>
-        
-        <nav class="sidebar-nav">
-            <div class="nav-item">
-                <a href="dashboard.php" class="nav-link">
-                    <i class="fas fa-tachometer-alt me-2"></i>
-                    Dashboard
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="courts.php" class="nav-link active">
-                    <i class="fas fa-futbol me-2"></i>
-                    Kelola Lapangan
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="transactions.php" class="nav-link">
-                    <i class="fas fa-exchange-alt me-2"></i>
-                    Kelola Transaksi
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="users.php" class="nav-link">
-                    <i class="fas fa-users me-2"></i>
-                    Kelola User
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="logout.php" class="nav-link">
-                    <i class="fas fa-sign-out-alt me-2"></i>
-                    Logout
-                </a>
-            </div>
-        </nav>
     </div>
+</div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Top Bar -->
-        <div class="top-bar">
-            <div>
-                <h4 class="mb-0">
-                    <i class="fas fa-futbol me-2 text-primary"></i>
-                    Kelola Lapangan
-                </h4>
-                <small class="text-muted">Kelola status dan informasi lapangan</small>
-            </div>
-            <div>
-                <a href="dashboard.php" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-arrow-left me-1"></i>
-                    Kembali
-                </a>
-            </div>
+<?php if ($message): ?>
+<div class="alert alert-<?= $message_type ?> alert-dismissible fade show" role="alert">
+    <?= $message ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+<?php endif; ?>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Daftar Lapangan</h5>
+        <div class="d-flex">
+            <form class="me-2" method="get">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>">
+                    <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
+            <button class="btn btn-primary" onclick="openCourtModal('add')">
+                <i class="fas fa-plus me-1"></i> Tambah
+            </button>
         </div>
-
-        <?php if ($message): ?>
-            <div class="alert alert-<?= $message_type ?> alert-dismissible fade show" role="alert">
-                <i class="fas fa-info-circle me-2"></i>
-                <?= $message ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-
-        <!-- Courts Table -->
-        <div class="courts-card">
-            <h5 class="mb-3">
-                <i class="fas fa-list me-2"></i>
-                Daftar Lapangan
-            </h5>
-            
-            <?php if ($courts->num_rows > 0): ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Lapangan</th>
+                        <th>Jenis</th>
+                        <th>Harga/Jam</th>
+                        <th>Status</th>
+                        <th>Total Booking</th>
+                        <th class="text-end">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (count($courts) > 0): ?>
+                        <?php foreach ($courts as $court): ?>
                             <tr>
-                                <th>Lapangan</th>
-                                <th>Jenis</th>
-                                <th>Harga</th>
-                                <th>Status</th>
-                                <th>Statistik Booking</th>
-                                <th>Deskripsi</th>
-                                <th>Aksi</th>
+                                <td>#<?= $court['id'] ?></td>
+                                <td><strong><?= htmlspecialchars($court['name']) ?></strong></td>
+                                <td>
+                                    <span class="badge bg-<?= $court['type'] === 'futsal' ? 'success' : 'info' ?> bg-opacity-10 text-<?= $court['type'] === 'futsal' ? 'success' : 'info' ?>">
+                                        <?= ucfirst($court['type']) ?>
+                                    </span>
+                                </td>
+                                <td>Rp <?= number_format($court['price_per_hour'], 0, ',', '.') ?></td>
+                                <td>
+                                    <span class="status-badge status-<?= strtolower($court['status']) ?>">
+                                        <?= ucfirst($court['status']) ?>
+                                    </span>
+                                </td>
+                                <td><?= number_format($court['total_bookings']) ?></td>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Aksi
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" onclick='openCourtModal("edit", <?= json_encode($court) ?>)'><i class="fas fa-edit me-2"></i>Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
+                                                    <input type="hidden" name="new_status" value="available">
+                                                    <button type="submit" name="toggle_status" class="dropdown-item">Set Available</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
+                                                    <input type="hidden" name="new_status" value="maintenance">
+                                                    <button type="submit" name="toggle_status" class="dropdown-item">Set Maintenance</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
+                                                    <input type="hidden" name="new_status" value="unavailable">
+                                                    <button type="submit" name="toggle_status" class="dropdown-item">Set Unavailable</button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" onsubmit="return confirm('Yakin ingin menghapus lapangan ini?');">
+                                                    <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
+                                                    <button type="submit" name="delete_court" class="dropdown-item text-danger"><i class="fas fa-trash me-2"></i>Hapus</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($court = $courts->fetch_assoc()): ?>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="../assets/img/<?= $court['type'] ?>.jpg" 
-                                                 alt="<?= $court['name'] ?>" 
-                                                 class="court-image me-3">
-                                            <div>
-                                                <strong><?= htmlspecialchars($court['name']) ?></strong>
-                                                <br>
-                                                <small class="text-muted">ID: <?= $court['id'] ?></small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="court-type-badge type-<?= $court['type'] ?>">
-                                            <?= ucfirst($court['type']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <strong class="text-success">
-                                            Rp <?= number_format($court['price_per_hour'], 0, ',', '.') ?>
-                                        </strong>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $status_class = '';
-                                        switch ($court['status']) {
-                                            case 'available': $status_class = 'status-available'; break;
-                                            case 'maintenance': $status_class = 'status-maintenance'; break;
-                                            case 'unavailable': $status_class = 'status-unavailable'; break;
-                                        }
-                                        ?>
-                                        <span class="status-badge <?= $status_class ?>">
-                                            <?= ucfirst($court['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="stats-mini">
-                                            <span class="stat-mini stat-bookings">
-                                                <i class="fas fa-calendar me-1"></i>
-                                                <?= $court['total_bookings'] ?>
-                                            </span>
-                                            <span class="stat-mini stat-confirmed">
-                                                <i class="fas fa-check me-1"></i>
-                                                <?= $court['confirmed_bookings'] ?>
-                                            </span>
-                                            <span class="stat-mini stat-pending">
-                                                <i class="fas fa-clock me-1"></i>
-                                                <?= $court['pending_bookings'] ?>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            <?= htmlspecialchars(substr($court['description'], 0, 50)) ?>...
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-outline-secondary btn-action dropdown-toggle" 
-                                                    type="button" 
-                                                    data-bs-toggle="dropdown">
-                                                <i class="fas fa-cog"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <form method="POST" style="display: inline;">
-                                                        <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
-                                                        <button type="submit" name="toggle_status" value="available" 
-                                                                class="dropdown-item <?= $court['status'] === 'available' ? 'active' : '' ?>"
-                                                                onclick="return confirm('Set status lapangan menjadi Available?')">
-                                                            <i class="fas fa-check-circle me-2"></i>
-                                                            Available
-                                                        </button>
-                                                        <input type="hidden" name="new_status" value="available">
-                                                    </form>
-                                                </li>
-                                                <li>
-                                                    <form method="POST" style="display: inline;">
-                                                        <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
-                                                        <button type="submit" name="toggle_status" value="maintenance" 
-                                                                class="dropdown-item <?= $court['status'] === 'maintenance' ? 'active' : '' ?>"
-                                                                onclick="return confirm('Set status lapangan menjadi Maintenance?')">
-                                                            <i class="fas fa-tools me-2"></i>
-                                                            Maintenance
-                                                        </button>
-                                                        <input type="hidden" name="new_status" value="maintenance">
-                                                    </form>
-                                                </li>
-                                                <li>
-                                                    <form method="POST" style="display: inline;">
-                                                        <input type="hidden" name="court_id" value="<?= $court['id'] ?>">
-                                                        <button type="submit" name="toggle_status" value="unavailable" 
-                                                                class="dropdown-item <?= $court['status'] === 'unavailable' ? 'active' : '' ?>"
-                                                                onclick="return confirm('Set status lapangan menjadi Unavailable?')">
-                                                            <i class="fas fa-times-circle me-2"></i>
-                                                            Unavailable
-                                                        </button>
-                                                        <input type="hidden" name="new_status" value="unavailable">
-                                                    </form>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-futbol fa-3x mb-3"></i>
-                    <p>Belum ada lapangan terdaftar</p>
-                </div>
-            <?php endif; ?>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Tidak ada data lapangan.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<script>
+function openCourtModal(mode, data = null) {
+    const modal = new bootstrap.Modal(document.getElementById('courtModal'));
+    const form = document.getElementById('courtModal').querySelector('form');
+    const modalLabel = document.getElementById('courtModalLabel');
+    const submitButton = document.getElementById('modalSubmitButton');
+
+    form.reset();
+    document.getElementById('court_id').value = '';
+
+    if (mode === 'add') {
+        modalLabel.textContent = 'Tambah Lapangan Baru';
+        submitButton.name = 'add_court';
+        submitButton.textContent = 'Tambah';
+        submitButton.className = 'btn btn-primary';
+    } else if (mode === 'edit' && data) {
+        modalLabel.textContent = 'Edit Lapangan';
+        submitButton.name = 'edit_court';
+        submitButton.textContent = 'Simpan Perubahan';
+        submitButton.className = 'btn btn-primary';
+
+        document.getElementById('court_id').value = data.id;
+        document.getElementById('courtName').value = data.name;
+        document.getElementById('courtType').value = data.type;
+        document.getElementById('courtPrice').value = data.price_per_hour;
+        document.getElementById('courtDescription').value = data.description;
+    }
+
+    modal.show();
+}
+</script>
+
+<?php include '../../templates/admin_footer.php'; ?>

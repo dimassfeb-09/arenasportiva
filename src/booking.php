@@ -15,14 +15,15 @@ function getAllCourts($mysqli, $onlyAvailable = false) {
 }
 
 /**
- * Ambil semua slot yang sudah dibooking (pending & approved) untuk suatu lapangan.
+ * Ambil semua slot yang sudah dibooking (pending & confirmed) untuk suatu lapangan.
  * @return array of ['start_datetime','duration_hours']
  */
 function getCourtBookings($mysqli, $court_id) {
     $stmt = $mysqli->prepare(
       "SELECT start_datetime, duration_hours
        FROM bookings
-       WHERE court_id = ? AND status IN ('pending','confirmed')");
+       WHERE court_id = ? AND status IN ('pending','confirmed')
+       AND CONCAT(DATE(start_datetime), ' ', TIME(start_datetime)) >= NOW()");
     $stmt->bind_param('i', $court_id);
     $stmt->execute();
     $res = $stmt->get_result();
