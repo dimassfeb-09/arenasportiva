@@ -19,7 +19,7 @@ require_once dirname(__FILE__) . '/../src/db_connect.php';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="/booking/public/assets/css/admin.css" rel="stylesheet">
+    <link href="assets/css/admin.css" rel="stylesheet">
 </head>
 <body>
     <div class="sidebar-wrapper">
