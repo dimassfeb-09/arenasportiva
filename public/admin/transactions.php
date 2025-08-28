@@ -264,13 +264,14 @@ if ($result) {
                                         <span class="fw-bold">
                                             Rp <?= number_format($booking['total_price'], 0, ',', '.') ?>
                                         </span>
-                                    <?php eproof_of_payment
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if (!empty($booking['proof_of_payment'])): ?>
                                         <a href="<?= '/' . htmlspecialchars($booking['proof_of_payment']) ?>" target="_blank">
                                             <img src="<?= '/' . htmlspecialchars($booking['proof_of_payment']) ?>" alt="Bukti" height="40" class="rounded">
                                         </a>
+
                                     <?php else: ?>
                                         -
                                     <?php endif; ?>
