@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </button>
                             </div>
                              <div class="text-center">
-                                <a href="/booking/public" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i> Kembali ke Beranda</a>
+                                <a href="/" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i> Kembali ke Beranda</a>
                             </div>
                         </form>
                     </div>
