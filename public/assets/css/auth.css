@@ -1,0 +1,152 @@
+.form-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    background: #fff;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #074173;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    width: 100%;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    border-color: #074173;
+    box-shadow: 0 0 0 0.25rem rgba(7, 65, 115, 0.15);
+    outline: none;
+}
+
+.btn-primary {
+    background-color: #074173;
+    border-color: #074173;
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    width: 100%;
+    font-weight: 500;
+    margin-top: 1rem;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #063a66;
+    border-color: #063a66;
+}
+
+.btn-secondary {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    width: 100%;
+    font-weight: 500;
+    margin-top: 1rem;
+    transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: #45a049;
+    border-color: #45a049;
+}
+
+.nav-tabs {
+    border: none;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #666;
+    font-weight: 500;
+    padding: 0.75rem 2rem;
+    position: relative;
+}
+
+.nav-tabs .nav-link.active {
+    color: #074173;
+    background: none;
+    border: none;
+}
+
+.nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #074173;
+}
+
+.tab-content {
+    padding: 1rem 0;
+}
+
+.form-text {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.form-text a {
+    color: #074173;
+    text-decoration: none;
+}
+
+.form-text a:hover {
+    text-decoration: underline;
+}
+
+.password-toggle {
+    position: relative;
+}
+
+.password-toggle .form-control {
+    padding-right: 2.5rem;
+}
+
+.password-toggle .toggle-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+}
+
+.alert {
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+}
+
+.alert-danger {
+    background-color: #fee2e2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
