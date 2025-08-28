@@ -5,7 +5,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-require_once __DIR__ . '/../../vendor/tcpdf/tcpdf.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../src/db_connect.php';
 
 if (isset($_GET['start_date']) && isset($_GET['end_date'])) {
