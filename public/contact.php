@@ -1,31 +1,165 @@
 <?php
 session_start();
+require_once __DIR__ . '/../src/db_connect.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Hanya proses jika user sudah login
+    if (!isset($_SESSION['user_id'])) {
+        $_SESSION['error_message'] = "Anda harus login terlebih dahulu untuk mengirim pesan.";
+        header('Location: contact.php');
+        exit;
+    }
+
+    $message_text = htmlspecialchars($_POST['message']);
+    $stmt = $mysqli->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, 4, ?)");
+    $stmt->bind_param("is", $_SESSION['user_id'], $message_text);
+    
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Pesan Anda telah dikirim ke admin. Kami akan segera meresponnya.";
+    } else {
+        $_SESSION['error_message'] = "Gagal mengirim pesan. Silakan coba lagi.";
+    }
+
+    header('Location: contact.php');
+    exit;
+}
+
 include __DIR__ . '/../templates/header.php';
 ?>
 
-<div class="container py-5" style="margin-top: 70px; max-width: 600px;">
-	<div class="card shadow-sm">
-		<div class="card-body text-center">
-			<h2 class="mb-4">Kontak Kami</h2>
-			<p class="mb-4">Silakan hubungi admin melalui WhatsApp untuk bantuan dan informasi lebih lanjut:</p>
-			
-			<div class="mb-4">
-				<a href="https://wa.me/6285894781559" target="_blank" class="btn btn-success btn-lg">
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="me-2">
-						<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-					</svg>
-					Hubungi Admin via WhatsApp
-				</a>
-			</div>
-			
-			<div class="text-muted">
-				<p class="mb-1"><strong>Nomor WhatsApp:</strong> 0858-9478-1559</p>
-				<p class="mb-0"><small>Klik tombol di atas untuk langsung chat dengan admin</small></p>
-			</div>
-		</div>
-	</div>
+<div class="contact-form-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h1 class="fw-bold">Hubungi Kami</h1>
+            <p class="lead text-secondary">Punya pertanyaan atau butuh bantuan? Jangan ragu untuk menghubungi kami.</p>
+        </div>
+
+        <div class="row g-5">
+            <div class="col-lg-7">
+                <div class="card shadow-sm">
+                    <style>
+    .chat-container {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+    .message-content {
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+    .user-message .message-content {
+        border-radius: 15px 15px 0 15px !important;
+    }
+    .admin-message .message-content {
+        border-radius: 15px 15px 15px 0 !important;
+    }
+    .chat-form {
+        background: #fff;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+    </style>
+    <div class="card-body p-4">
+                        <h4 class="card-title mb-4">Hubungi Admin</h4>
+                        
+                        <?php if (!isset($_SESSION['user_id'])): ?>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Silakan <a href="#" data-bs-toggle="offcanvas" data-bs-target="#authOffcanvas" class="alert-link">login</a> terlebih dahulu untuk mengirim pesan ke admin.
+                            </div>
+                        <?php else: ?>
+                            <?php if (isset($_SESSION['success_message'])): ?>
+                                <div class="alert alert-success">
+                                    <?= $_SESSION['success_message'] ?>
+                                    <?php unset($_SESSION['success_message']); ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (isset($_SESSION['error_message'])): ?>
+                                <div class="alert alert-danger">
+                                    <?= $_SESSION['error_message'] ?>
+                                    <?php unset($_SESSION['error_message']); ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <!-- Chat container -->
+                            <div class="chat-container mb-3" style="height: 300px; overflow-y: auto;" id="chatContainer">
+                                <?php
+                                // Ambil riwayat chat
+                                $stmt = $mysqli->prepare("
+                                    SELECT m.*, u.name as sender_name 
+                                    FROM messages m 
+                                    JOIN users u ON m.sender_id = u.id 
+                                    WHERE (m.sender_id = ? AND m.receiver_id = 4) 
+                                    OR (m.sender_id = 4 AND m.receiver_id = ?)
+                                    ORDER BY m.created_at ASC
+                                ");
+                                $stmt->bind_param("ii", $_SESSION['user_id'], $_SESSION['user_id']);
+                                $stmt->execute();
+                                $messages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                                
+                                foreach ($messages as $msg):
+                                ?>
+                                    <div class="message <?= $msg['sender_id'] == $_SESSION['user_id'] ? 'user-message text-end' : 'admin-message' ?> mb-3">
+                                        <div class="message-content d-inline-block p-2 px-3 rounded-3 
+                                            <?= $msg['sender_id'] == $_SESSION['user_id'] ? 'bg-primary text-white' : 'bg-light' ?>">
+                                            <?= htmlspecialchars($msg['message']) ?>
+                                            <small class="d-block <?= $msg['sender_id'] == $_SESSION['user_id'] ? 'text-light' : 'text-muted' ?>" style="font-size: 0.7rem;">
+                                                <?= date('H:i', strtotime($msg['created_at'])) ?>
+                                                <?= $msg['sender_id'] == 1 ? '- Admin' : '' ?>
+                                            </small>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <form action="contact.php" method="POST" class="chat-form">
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">Pesan</label>
+                                    <textarea class="form-control" id="message" name="message" rows="3" required 
+                                             placeholder="Ketik pesan Anda di sini..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Kirim Pesan
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="contact-info">
+                    <h4>Informasi Kontak</h4>
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <strong>Alamat</strong>
+                            <p>Jl. Arena Sportiva, Kota Sport, Indonesia</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-phone"></i>
+                        <div>
+                            <strong>Telepon</strong>
+                            <p>(021) 123-4567</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-envelope"></i>
+                        <div>
+                            <strong>Email</strong>
+                            <p>arenasportiva@gmail.com</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fab fa-whatsapp"></i>
+                        <div>
+                            <strong>WhatsApp</strong>
+                            <p><a href="https://wa.me/6285894781559" target="_blank">0858-9478-1559</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>
-
-

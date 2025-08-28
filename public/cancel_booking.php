@@ -23,14 +23,18 @@ if (!$booking || $booking['status'] !== 'pending') {
     exit;
 }
 
-// Hapus booking
-$stmt = $mysqli->prepare("DELETE FROM bookings WHERE id = ?");
-$stmt->bind_param('i', $booking_id);
+// Update status booking menjadi cancelled dan catat alasan
+$reason = $_GET['reason'] ?? 'user_cancelled';
+$stmt = $mysqli->prepare("UPDATE bookings SET status = 'cancelled', cancelled_at = NOW(), cancel_reason = ? WHERE id = ?");
+$stmt->bind_param('si', $reason, $booking_id);
 $stmt->execute();
 $stmt->close();
 
-// Bersihkan session booking
-unset($_SESSION['last_booking_id']);
+// Bersihkan session booking yang dibatalkan saja
+if (isset($_SESSION['last_booking_id']) && $_SESSION['last_booking_id'] == $booking_id) {
+    unset($_SESSION['last_booking_id']);
+}
 
+$_SESSION['message'] = "Booking berhasil dibatalkan. Jika Anda sudah melakukan pembayaran, silakan hubungi admin untuk proses pengembalian dana.";
 header('Location: history.php?cancel=success');
 exit;

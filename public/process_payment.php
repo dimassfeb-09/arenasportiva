@@ -21,13 +21,7 @@ $booking_id = (int) $_POST['booking_id'];
 $method     = $_POST['method'];           // 'qris' atau 'transfer'
 $user_id    = $_SESSION['user_id'];
 
-// Ambil coupon_discount user
-$stmt = $mysqli->prepare("SELECT coupon_discount FROM users WHERE id = ?");
-$stmt->bind_param('i', $user_id);
-$stmt->execute();
-$stmt->bind_result($coupon_discount);
-$stmt->fetch();
-$stmt->close();
+
 // ...hapus logika balance...
 $discount = (int)($_POST['discount'] ?? 0);
 $paid_amount = (int)($_POST['paid_amount'] ?? 0);
@@ -62,12 +56,7 @@ $stmt->bind_result($amount);
 $stmt->fetch();
 $stmt->close();
 
-// Terapkan coupon_discount jika ada
-if ($coupon_discount > 0) {
-        $discount += $coupon_discount;
-}
-
-// ...hapus logika balance...
+// Diskon hanya dari durasi
 
 // Simpan ke tabel payments
 $stmt = $mysqli->prepare("
@@ -83,13 +72,7 @@ if (!$stmt->execute()) {
 $stmt->close();
 
 
-// Jika coupon_discount dipakai, update user jadi 0
-if ($coupon_discount > 0) {
-    $stmt = $mysqli->prepare("UPDATE users SET coupon_discount = 0 WHERE id = ?");
-    $stmt->bind_param('i', $user_id);
-    $stmt->execute();
-    $stmt->close();
-}
+
 
 // Bersihkan session booking_id
 unset($_SESSION['last_booking_id']);
